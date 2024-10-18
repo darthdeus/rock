@@ -1,0 +1,8 @@
+// this is a function
+fn foo(x: string, y, z: num) -> num {
+  print(z, x + y);
+
+  return 5;
+}
+
+foo(5);

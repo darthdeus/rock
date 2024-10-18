@@ -1,0 +1,35 @@
+{
+  "grammars": [
+    {
+      "name": "rock",
+      "camelcase": "Rock",
+      "scope": "source.rock",
+      "path": ".",
+      "file-types": ["rock"],
+      "highlights": ["queries/highlights.scm"],
+      "injection-regex": "^rock$"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "Rock is good language",
+    "authors": [
+      {
+        "name": "Jakub Arnold",
+        "email": "darthdeus@gmail.com"
+      }
+    ],
+    "links": {
+      "repository": "https://github.com/darthdeus/rock"
+    }
+  },
+  "bindings": {
+    "c": true,
+    "go": true,
+    "node": true,
+    "python": true,
+    "rust": true,
+    "swift": true
+  }
+}
