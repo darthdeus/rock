@@ -417,7 +417,12 @@ module.exports = grammar({
       ),
 
     string: ($) =>
-      seq(optional("$"), '"', repeat(choice(/[^"\\]/, /\\./)), '"'),
+      seq(
+        optional("$"),
+        '"',
+        field("str", repeat(choice(/[^"\\]/, /\\./))),
+        '"',
+      ),
 
     identifier: ($) => /\$?[a-zA-Z_][a-zA-Z0-9_]*/,
     // identifier: ($) => /(?!\bif\b)[a-zA-Z_][a-zA-Z0-9_]*/,

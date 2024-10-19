@@ -14,7 +14,10 @@ macro_rules! bail_unexpected {
 macro_rules! field_or_bail {
     ($node:expr, $field_name:expr, $source:expr) => {
         $node.child_by_field_name($field_name).ok_or_else(|| {
-            $node.report_error($source, &format!("No field '{}' on node", $field_name));
+            $node.report_error(
+                $source,
+                &format!("No field '{}' on node {}", $field_name, $node.to_sexp()),
+            );
             anyhow!("No field '{}' on node", $field_name)
         })?
     };
@@ -380,7 +383,29 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
             }
         }
 
+        "index" => {
+            let base_node = field_or_bail!(node, "base", source);
+            let base = parse_expression(base_node, source, id_gen)?;
+
+            let index_node = field_or_bail!(node, "index", source);
+            let index = parse_expression(index_node, source, id_gen)?;
+
+            ExprKind::Index {
+                base: Box::new(base),
+                index: Box::new(index),
+            }
+        }
+
+        "string" => ExprKind::StringLiteral(node.text(source)?.into()),
+
+        // Sometimes exprs are nested for some reason.
+        // For now we don't care, this works.
+        "expression" => {
+            return parse_expression(node, source, id_gen);
+        }
+
         _ => {
+            println!("node.kind(): '{}'", node.to_sexp());
             bail_unexpected!(node, source, "expression");
         }
     };
