@@ -1,6 +1,5 @@
 use anyhow::{anyhow, bail, Result};
 use debug::NodeExt;
-use source_code::Span;
 use tree_sitter::Node;
 
 use crate::*;
@@ -14,7 +13,7 @@ macro_rules! bail_unexpected {
 
 pub struct Source {
     pub code: String,
-    pub file: Option<String>,
+    pub file: Option<ustr::Ustr>,
 }
 
 pub struct Parser {
@@ -85,7 +84,7 @@ pub fn parse_statement(
     let kind = match node.kind() {
         "comment" => StatementKind::Comment(Comment {
             id: id_gen.id_gen(),
-            span: Span::unknown(),
+            span: node.to_source_span(source),
             text: node.text(source)?.to_string(),
         }),
 
@@ -101,7 +100,7 @@ pub fn parse_statement(
 
     Ok(Statement {
         id: id_gen.id_gen(),
-        span: Span::unknown(),
+        span: node.to_source_span(source),
         kind,
     })
 }
@@ -129,7 +128,7 @@ pub fn parse_function_def(
 
             let ident = Ident {
                 id: id_gen.id_gen(),
-                span: Span::unknown(),
+                span: node.to_source_span(source),
                 text: param_text.into(),
             };
 
@@ -141,10 +140,10 @@ pub fn parse_function_def(
 
                     let type_expr = TypeExpr {
                         id: id_gen.id_gen(),
-                        span: Span::unknown(),
+                        span: type_expr_node.to_source_span(source),
                         kind: TypeExprKind::Named(Ident {
                             id: id_gen.id_gen(),
-                            span: Span::unknown(),
+                            span: type_expr_node.to_source_span(source),
                             text: type_expr_node.text(source)?.into(),
                         }),
                     };
@@ -172,10 +171,10 @@ pub fn parse_function_def(
 
         Some(TypeExpr {
             id: id_gen.id_gen(),
-            span: Span::unknown(),
+            span: node.to_source_span(source),
             kind: TypeExprKind::Named(Ident {
                 id: id_gen.id_gen(),
-                span: Span::unknown(),
+                span: node.to_source_span(source),
                 text: text.into(),
             }),
         })
@@ -191,11 +190,11 @@ pub fn parse_function_def(
 
     Ok(FunctionDef {
         id: id_gen.id_gen(),
-        span: Span::unknown(),
+        span: child.to_source_span(source),
 
         name: Ident {
             id: id_gen.id_gen(),
-            span: Span::unknown(),
+            span: child.to_source_span(source),
             text: fn_name.into(),
         },
         params,
@@ -218,7 +217,7 @@ pub fn parse_block(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) -> Re
 
     Ok(Block {
         id: id_gen.id_gen(),
-        span: Span::unknown(),
+        span: node.to_source_span(source),
         statements,
         return_expr,
     })
@@ -228,10 +227,10 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
     if node.child_count() == 0 {
         return Ok(Expr {
             id: id_gen.id_gen(),
-            span: Span::unknown(),
+            span: node.to_source_span(source),
             kind: ExprKind::Path(Ident {
                 id: id_gen.id_gen(),
-                span: Span::unknown(),
+                span: node.to_source_span(source),
                 text: node.text(source)?.into(),
             }),
         });
@@ -245,7 +244,7 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
         "function_call" => {
             let ident = Ident {
                 id: id_gen.id_gen(),
-                span: Span::unknown(),
+                span: node.to_source_span(source),
                 text: node.text(source)?.into(),
             };
 
@@ -272,7 +271,7 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
 
     Ok(Expr {
         id: id_gen.id_gen(),
-        span: Span::unknown(),
+        span: node.to_source_span(source),
         kind,
     })
 }

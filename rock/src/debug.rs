@@ -11,6 +11,7 @@ pub trait NodeExt {
     fn report_unexpected_kind(&self, source: &Source, ty: &str);
     fn to_span_nofile(&self) -> Span;
     fn to_span(&self, file: ustr::Ustr) -> Span;
+    fn to_source_span(&self, source: &Source) -> Span;
     fn text<'a>(&self, source: &'a Source) -> Result<&'a str>;
 }
 
@@ -33,6 +34,10 @@ impl<'a> NodeExt for Node<'a> {
 
     fn to_span_nofile(&self) -> Span {
         self.to_span("<unknown>".into())
+    }
+
+    fn to_source_span(&self, source: &Source) -> Span {
+        self.to_span(source.file.unwrap_or_else(|| "<unknown>".into()))
     }
 
     fn to_span(&self, file: ustr::Ustr) -> Span {
