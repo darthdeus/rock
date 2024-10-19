@@ -318,16 +318,12 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
         });
     }
 
-    // println!("BEFORE parsing {}: {}", node.kind(), node.to_sexp());
-
-    let node = if node.kind() == "expression" {
-        node.child(0)
-            .ok_or_else(|| anyhow!("Expression must have a child"))?
-    } else {
-        node
-    };
-
-    // println!("GOT CHILD 0 parsing {}: {}", node.kind(), node.to_sexp());
+    // let node = if node.kind() == "expression" {
+    //     node.child(0)
+    //         .ok_or_else(|| anyhow!("Expression must have a child"))?
+    // } else {
+    //     node
+    // };
 
     let kind = match node.kind() {
         "identifier" => ExprKind::Path(Ident {
@@ -351,11 +347,8 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
                 .child_by_field_name("args")
                 .ok_or_else(|| anyhow!("No arguments on function_call"))?;
 
-            // println!("Iterating func args: {}", args_node.to_sexp());
-
             for i in 0..args_node.named_child_count() {
                 if let Some(node) = args_node.named_child(i) {
-                    // println!("[{}]: {}", i, node.to_sexp());
                     let expr = parse_expression(node, source, id_gen)?;
                     args.push(expr);
                 }
@@ -413,6 +406,22 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
             }
         }
 
+        "field_access" => {
+            let base_node = field_or_bail!(node, "base", source);
+            let base = parse_expression(base_node, source, id_gen)?;
+            let field_node = field_or_bail!(node, "field", source);
+            let field = field_node.text(source)?.into();
+
+            ExprKind::FieldAccess {
+                field: Ident {
+                    id: id_gen.id_gen(),
+                    span: field_node.to_source_span(source),
+                    text: field,
+                },
+                base: Box::new(base),
+            }
+        }
+
         "index" => {
             let base_node = field_or_bail!(node, "base", source);
             let base = parse_expression(base_node, source, id_gen)?;
@@ -431,6 +440,10 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
         // Sometimes exprs are nested for some reason.
         // For now we don't care, this works.
         "expression" => {
+            let node = node
+                .child(0)
+                .ok_or_else(|| anyhow!("Expression must have a child"))?;
+
             return parse_expression(node, source, id_gen);
         }
 

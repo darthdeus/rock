@@ -177,10 +177,10 @@ pub enum ExprKind {
     //     ty_expr: TypeExpr,
     //     sub_expr: Box<Expr>,
     // },
-    // FieldAccess {
-    //     base: Box<Expr>,
-    //     field: Ident,
-    // },
+    FieldAccess {
+        field: Ident,
+        base: Box<Expr>,
+    },
     // MethodCall {
     //     base: Box<Expr>,
     //     args: Vec<Expr>,

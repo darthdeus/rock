@@ -110,6 +110,9 @@ impl Format for Expr {
             ExprKind::BinaryOp { op, left, right } => {
                 format!("{} {} {}", left.format(s), op.to_string(), right.format(s))
             }
+            ExprKind::FieldAccess { field, base } => {
+                format!("{}.{}", base.format(s), field.format(s))
+            }
             ExprKind::Index { base, index } => {
                 format!("{}[{}]", base.format(s), index.format(s))
             }
