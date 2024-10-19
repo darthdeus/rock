@@ -88,7 +88,7 @@ impl Parser {
                         }
                     }
 
-                    println!("parsed params: {:#?}", params);
+                    // println!("parsed params: {:#?}", params);
 
                     let return_type_node = child.child_by_field_name("return_type");
 
@@ -108,9 +108,16 @@ impl Parser {
                         None
                     };
 
-                    let body = child
+                    let body_node = child
                         .child_by_field_name("body")
                         .ok_or_else(|| anyhow!("No body on function_def"))?;
+
+                    let body = Block {
+                        id: self.id_gen.id_gen(),
+                        span: Span::unknown(),
+                        statements: Vec::new(),
+                        return_expr: None,
+                    };
 
                     top_level.push(TopLevel::Function(FunctionDef {
                         id: self.id_gen.id_gen(),
@@ -121,9 +128,9 @@ impl Parser {
                             span: Span::unknown(),
                             text: fn_name.into(),
                         },
-                        params: todo!(),
+                        params,
                         return_type,
-                        body: todo!(),
+                        body,
                         kind: FunctionDefKind::Standalone,
                     }));
                 }
