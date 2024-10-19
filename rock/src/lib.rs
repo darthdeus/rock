@@ -3,6 +3,8 @@ use anyhow::Result;
 use ast::*;
 
 pub mod ast;
+pub mod debug;
+pub mod format;
 pub mod parser;
 pub mod source_code;
 

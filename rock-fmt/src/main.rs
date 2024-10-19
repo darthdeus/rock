@@ -1,4 +1,5 @@
 use anyhow::Result;
+use rock::{debug::AstKind, format::*};
 use std::env;
 
 fn main() -> Result<()> {
@@ -15,7 +16,12 @@ fn main() -> Result<()> {
 
     let top_level = rock::parse(&input_file)?;
 
-    println!("Top level parsed as:\n{:#?}", top_level);
+    println!(
+        "Top level parsed as:\n{:#?}",
+        top_level.iter().map(|x| x.kind()).collect::<Vec<_>>()
+    );
+
+    println!("Formatted:\n\n{}", format_top_level(top_level));
 
     Ok(())
 }
