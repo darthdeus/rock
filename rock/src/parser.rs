@@ -302,6 +302,12 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
         .ok_or_else(|| anyhow!("Expression must have a child"))?;
 
     let kind = match node.kind() {
+        "identifier" => ExprKind::Path(Ident {
+            id: id_gen.id_gen(),
+            span: node.to_source_span(source),
+            text: node.text(source)?.into(),
+        }),
+
         "function_call" => {
             let ident = Ident {
                 id: id_gen.id_gen(),
