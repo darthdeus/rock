@@ -213,8 +213,6 @@ pub fn parse_block(node: Node, source: &str, id_gen: &mut AstNodeIdGen) -> Resul
 }
 
 pub fn parse_expression(node: Node, source: &str, id_gen: &mut AstNodeIdGen) -> Result<Expr> {
-    println!("parsing expression: {:?}", node.to_sexp());
-
     if node.child_count() == 0 {
         return Ok(Expr {
             id: id_gen.id_gen(),
