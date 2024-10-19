@@ -37,9 +37,58 @@ impl Parser {
                         .ok_or_else(|| anyhow!("No name on function_def"))?;
                     let fn_name = name_node.utf8_text(source.as_bytes())?;
 
-                    let params = child
+                    let params_node = child
                         .child_by_field_name("parameters")
                         .ok_or_else(|| anyhow!("No parameters on function_def"))?;
+
+                    // Extract parameters from the parameters_node
+                    let mut params = Vec::new();
+
+                    for i in 0..params_node.named_child_count() {
+                        if let Some(node) = params_node.named_child(i) {
+                            let param_text = node.utf8_text(source.as_bytes())?;
+
+                            let ident = Ident {
+                                id: self.id_gen.id_gen(),
+                                span: Span::unknown(),
+                                text: param_text.into(),
+                            };
+
+                            let param_kind = node.kind();
+
+                            match param_kind {
+                                "typed_param" => {
+                                    let type_expr_node = node
+                                        .child_by_field_name("type_expr")
+                                        .ok_or_else(|| anyhow!("No type on typed_param"))?;
+
+                                    let type_expr = TypeExpr {
+                                        id: self.id_gen.id_gen(),
+                                        span: Span::unknown(),
+                                        kind: TypeExprKind::Named(Ident {
+                                            id: self.id_gen.id_gen(),
+                                            span: Span::unknown(),
+                                            text: type_expr_node
+                                                .utf8_text(source.as_bytes())?
+                                                .into(),
+                                        }),
+                                    };
+
+                                    params.push(FunctionParam::Typed(ident, type_expr));
+                                }
+
+                                "untyped_param" => {
+                                    params.push(FunctionParam::Untyped(ident));
+                                }
+
+                                _ => {
+                                    bail!("unexpected param kind: '{}'", param_kind);
+                                }
+                            }
+                        }
+                    }
+
+                    println!("parsed params: {:#?}", params);
 
                     let return_type_node = child.child_by_field_name("return_type");
 

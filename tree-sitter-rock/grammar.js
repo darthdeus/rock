@@ -64,7 +64,7 @@ module.exports = grammar({
         field("name", $.identifier),
         field("parameters", $.parameter_list),
         optional(seq("->", field("return_type", $._type_expr))),
-        field("body", $.block)
+        field("body", $.block),
       ),
 
     struct: ($) =>
@@ -215,9 +215,21 @@ module.exports = grammar({
       ),
 
     self: ($) => "self",
-    parameter_list: ($) => seq("(", commaSep(choice($.self, $.parameter)), ")"),
-    parameter: ($) =>
-      choice(seq($.identifier, ":", $._type_expr), seq($.identifier)),
+
+    parameter_list: ($) =>
+      seq(
+        "(",
+        commaSep(choice($.self, choice($.typed_param, $.untyped_param))),
+        ")",
+      ),
+
+    typed_param: ($) =>
+      seq(
+        field("identifier", $.identifier),
+        ":",
+        field("type_expr", $._type_expr),
+      ),
+    untyped_param: ($) => $.identifier,
 
     statement: ($) =>
       prec(
