@@ -1,20 +1,6 @@
 use anyhow::Result;
 use std::env;
 
-#[derive(Debug, Clone)]
-enum Statement {
-    Yes,
-}
-
-#[derive(Debug, Clone)]
-struct FunctionDef {}
-
-#[derive(Debug, Clone)]
-enum TopLevel {
-    Statement(Statement),
-    Function(FunctionDef),
-}
-
 fn main() -> Result<()> {
     let args: Vec<_> = env::args().collect();
 
