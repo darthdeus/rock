@@ -1,5 +1,6 @@
 # Rock is good language
 
+Do not touch rock ... yet.
 
 ## Credits
 
