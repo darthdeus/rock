@@ -111,6 +111,8 @@ pub struct Comment {
 #[derive(Clone, Debug, PartialEq)]
 pub enum StatementKind {
     Comment(Comment),
+    BlankLine,
+    Nothing,
     Expression(Expr),
     Return(Option<Expr>),
     Break,

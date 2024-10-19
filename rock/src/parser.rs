@@ -53,11 +53,13 @@ impl Parser {
         for child in root.children(&mut cursor) {
             match child.kind() {
                 "statement" => {
-                    top_level.push(TopLevel::Statement(parse_statement(
-                        child,
-                        source,
-                        &mut self.id_gen,
-                    )?));
+                    let statement = parse_statement(child, source, &mut self.id_gen)?;
+
+                    if let StatementKind::Nothing = statement.kind {
+                        continue;
+                    }
+
+                    top_level.push(TopLevel::Statement(statement));
                 }
 
                 "function_def" => {
@@ -89,9 +91,24 @@ pub fn parse_statement(
     source: &Source,
     id_gen: &mut AstNodeIdGen,
 ) -> Result<Statement> {
-    let node = node
-        .child(0)
-        .ok_or_else(|| anyhow!("Statement must have a child"))?;
+    // if node.text(source)?.chars().all(|x| x.is_whitespace()) {
+    //     return Ok(Statement {
+    //         id: id_gen.id_gen(),
+    //         span: node.to_source_span(source),
+    //         kind: StatementKind::Nothing,
+    //     });
+    // }
+
+    let node = node.child(0).ok_or_else(|| {
+        node.report_error(
+            source,
+            &format!(
+                "Statement must have a child, got '{}'",
+                node.text(source).unwrap()
+            ),
+        );
+        anyhow!("Statement must have a child")
+    })?;
 
     let kind = match node.kind() {
         "comment" => StatementKind::Comment(Comment {
@@ -99,6 +116,9 @@ pub fn parse_statement(
             span: node.to_source_span(source),
             text: node.text(source)?.to_string(),
         }),
+
+        "blank_line" => StatementKind::BlankLine,
+        "newline" => StatementKind::Nothing,
 
         "expression" => {
             let expr = parse_expression(node, source, id_gen)?;

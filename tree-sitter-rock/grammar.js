@@ -42,6 +42,8 @@ const PREC = {
 module.exports = grammar({
   name: "rock",
 
+  // extras: ($) => [/\s+/], // Allow whitespace to be automatically skipped
+
   rules: {
     source_file: ($) => repeat($._item),
 
@@ -213,6 +215,8 @@ module.exports = grammar({
       prec(
         1000,
         choice(
+          $.blank_line,
+          $.newline,
           $.for,
           $.while,
           $.comment,
@@ -275,6 +279,14 @@ module.exports = grammar({
           ")",
         ),
       ),
+
+    // blank_line: $ => /\s*\n/,
+    // blank_line: ($) => token(prec(-1, /\n\s*\n/)), // Match consecutive newlines with possible spaces
+
+    blank_line: ($) => /\n\s*\n/,
+
+    // Single newline between statements, not counted as a blank line
+    newline: ($) => /\n/,
 
     struct_literal: ($) => prec(1, seq($.identifier, $.field_values)),
 

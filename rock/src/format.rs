@@ -12,7 +12,7 @@ pub fn format_top_level(top_level: Vec<TopLevel>) -> String {
         .into_iter()
         .map(|x| x.format(&FormatStyle::default()))
         .collect::<Vec<_>>()
-        .join("\n\n")
+        .join("\n")
 }
 
 pub trait Format {
@@ -32,6 +32,8 @@ impl Format for Statement {
     fn format(&self, s: &FormatStyle) -> String {
         match &self.kind {
             StatementKind::Comment(text) => text.text.clone(),
+            StatementKind::BlankLine => "".to_string(),
+            StatementKind::Nothing => "".to_string(),
             StatementKind::Expression(expr) => expr.format(s),
             StatementKind::Return(None) => "return;".to_string(),
             StatementKind::Return(Some(expr)) => format!("return {};", expr.format(s)),

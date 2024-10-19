@@ -660,6 +660,14 @@
         "members": [
           {
             "type": "SYMBOL",
+            "name": "blank_line"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "newline"
+          },
+          {
+            "type": "SYMBOL",
             "name": "for"
           },
           {
@@ -937,6 +945,14 @@
           }
         ]
       }
+    },
+    "blank_line": {
+      "type": "PATTERN",
+      "value": "\\n\\s*\\n"
+    },
+    "newline": {
+      "type": "PATTERN",
+      "value": "\\n"
     },
     "struct_literal": {
       "type": "PREC",

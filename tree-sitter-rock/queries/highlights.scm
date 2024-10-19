@@ -5,7 +5,6 @@
   "let"
   "return"
   "as"
-  "extern"
   "struct"
   "impl"
 ] @keyword
@@ -14,11 +13,12 @@
 (comment) @comment
 
 ; ; Function definitions and calls
-(function (identifier) @function)
-; (function_call (identifier) @function)
+(function_def (identifier) @function)
+(function_call (identifier) @function)
 
 ; Variables
-(parameter (identifier) @variable.parameter)
+(typed_param (identifier) @variable.parameter)
+(untyped_param (identifier) @variable.parameter)
 (field (identifier) @variable.field)
 (let (identifier) @variable)
 
@@ -28,8 +28,6 @@
 ; Constants
 (string) @string
 (number) @number
-
-(extern_modifier) @string
 
 (generic_type
   "<" @punctuation.bracket
@@ -47,6 +45,5 @@
 "global" @keyword.declaration
 "return" @keyword.control
 "as" @keyword.operator
-"extern" @keyword.directive
 "struct" @keyword.type
 "impl" @keyword.directive
