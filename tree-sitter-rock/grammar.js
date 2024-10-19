@@ -1,7 +1,7 @@
 /**
  * @file Rock is good language
  * @author Jakub Arnold <darthdeus@gmail.com>
- * @license MIT
+ * @license MPL
  */
 
 function sepBy1(sep, rule) {

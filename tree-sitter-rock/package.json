@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Rock is good language",
   "repository": "github:tree-sitter/tree-sitter-rock",
-  "license": "MIT",
+  "license": "MPL",
   "author": {
     "name": "Jakub Arnold",
     "email": "darthdeus@gmail.com"

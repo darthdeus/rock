@@ -1,6 +1,20 @@
 use anyhow::Result;
 use std::env;
 
+#[derive(Debug, Clone)]
+enum Statement {
+    Yes,
+}
+
+#[derive(Debug, Clone)]
+struct FunctionDef {}
+
+#[derive(Debug, Clone)]
+enum TopLevel {
+    Statement(Statement),
+    Function(FunctionDef),
+}
+
 fn main() -> Result<()> {
     let args: Vec<_> = env::args().collect();
 
@@ -19,12 +33,29 @@ fn main() -> Result<()> {
     let root = tree.root_node();
     let mut cursor = root.walk();
 
+    let mut top_level = Vec::<TopLevel>::new();
+
     println!("got file: {}", input_file);
     println!("tree: {:#?}", tree);
 
     for child in root.children(&mut cursor) {
-        println!("got child {:?}", child);
+        match child.kind() {
+            "statement" => {
+                top_level.push(TopLevel::Statement(Statement::Yes));
+            }
+
+            "function" => {
+                top_level.push(TopLevel::Function(FunctionDef {}));
+            }
+
+            _ => {
+                println!("unexpected child: {:?}", child);
+            }
+        }
+        println!("got child {:?} of kind {}", child, child.kind());
     }
+
+    println!("Top level parsed as:\n{:#?}", top_level);
 
     Ok(())
 }
