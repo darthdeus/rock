@@ -93,6 +93,58 @@ pub fn parse_statement(
             StatementKind::Expression(expr)
         }
 
+        "return" => {
+            let expr_node = node
+                .child_by_field_name("expr")
+                .ok_or_else(|| anyhow!("No expr on return"))?;
+
+            let expr = parse_expression(expr_node, source, id_gen)?;
+            StatementKind::Return(Some(expr))
+        }
+
+        "let" => {
+            let ident_node = node
+                .child_by_field_name("ident")
+                .ok_or_else(|| anyhow!("No ident on let"))?;
+
+            let ident = Ident {
+                id: id_gen.id_gen(),
+                span: ident_node.to_source_span(source),
+                text: ident_node.text(source)?.into(),
+            };
+
+            let ty_expr = if let Some(node) = node.child_by_field_name("type") {
+                let type_expr_node = node
+                    .child_by_field_name("type")
+                    .ok_or_else(|| anyhow!("No type on let"))?;
+
+                let ty_expr = TypeExpr {
+                    id: id_gen.id_gen(),
+                    span: type_expr_node.to_source_span(source),
+                    kind: TypeExprKind::Named(Ident {
+                        id: id_gen.id_gen(),
+                        span: type_expr_node.to_source_span(source),
+                        text: type_expr_node.text(source)?.into(),
+                    }),
+                };
+
+                Some(ty_expr)
+            } else {
+                None
+            };
+
+            let expr_node = node
+                .child_by_field_name("expr")
+                .ok_or_else(|| anyhow!("No expr on let"))?;
+            let expr = parse_expression(expr_node, source, id_gen)?;
+
+            StatementKind::Let {
+                ident,
+                ty_expr,
+                expr,
+            }
+        }
+
         _ => {
             bail_unexpected!(node, source, "statement");
         }
@@ -262,6 +314,63 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
             }
 
             ExprKind::FunctionCall { ident, args }
+        }
+
+        "number" => {
+            let num_text = node.text(source)?;
+            let num = num_text.parse::<f64>()?;
+            ExprKind::NumLiteral(num)
+        }
+
+        "binary_op" => {
+            // let op = node.text(source)?;
+
+            let left_node = node
+                .child_by_field_name("lhs")
+                .ok_or_else(|| anyhow!("No lhs on binary_op"))?;
+            let left = parse_expression(left_node, source, id_gen)?;
+
+            let right_node = node
+                .child_by_field_name("rhs")
+                .ok_or_else(|| anyhow!("No rhs on binary_op"))?;
+            let right = parse_expression(right_node, source, id_gen)?;
+
+            let op_node = node
+                .child_by_field_name("op")
+                .ok_or_else(|| anyhow!("No op on binary_op"))?;
+
+            let op = match op_node.text(source)? {
+                "+" => BinOp::Add,
+                "-" => BinOp::Sub,
+                "*" => BinOp::Mul,
+                "/" => BinOp::Div,
+                "&&" => BinOp::And,
+                "||" => BinOp::Or,
+                "==" => BinOp::Eq,
+                "!=" => BinOp::Neq,
+                "<" => BinOp::Lt,
+                ">" => BinOp::Gt,
+                "<=" => BinOp::Le,
+                ">=" => BinOp::Ge,
+                "&" => BinOp::BitAnd,
+                "|" => BinOp::BitOr,
+                "^" => BinOp::BitXor,
+                "!" => BinOp::BitNot,
+                "<<" => BinOp::Shl,
+                ">>" => BinOp::Shr,
+                "%" => BinOp::Modulo,
+                op => {
+                    let msg = format!("unknown operator: '{}'", op);
+                    node.report_error(source, &msg);
+                    bail!(msg);
+                }
+            };
+
+            ExprKind::BinaryOp {
+                op,
+                left: Box::new(left),
+                right: Box::new(right),
+            }
         }
 
         _ => {

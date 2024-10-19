@@ -340,7 +340,14 @@ module.exports = grammar({
 
     unary_op: ($) => prec(PREC.unary, seq($.un_op, $.expression)),
     binary_op: ($) =>
-      prec.left(1, seq($.expression, $.bin_op, $._expression_no_struct)),
+      prec.left(
+        1,
+        seq(
+          field("left", $.expression),
+          field("op", $.bin_op),
+          field("right", $._expression_no_struct),
+        ),
+      ),
 
     typecast: ($) => seq($.expression, "as", $._type_expr),
 
@@ -379,15 +386,15 @@ module.exports = grammar({
       ),
 
     paren_expr: ($) => seq("(", $.expression, ")"),
-    return: ($) => seq("return", $.expression),
+    return: ($) => seq("return", field("expr", $.expression)),
 
     let: ($) =>
       seq(
         "let",
-        $.identifier,
-        optional(seq(":", $._type_expr)),
+        field("ident", $.identifier),
+        field("type", optional(seq(":", $._type_expr))),
         "=",
-        $.expression,
+        field("expr", $.expression),
       ),
 
     assignment: ($) => seq($.expression, "=", $.expression),

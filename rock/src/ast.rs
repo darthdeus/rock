@@ -25,6 +25,12 @@ impl AstNodeIdGen {
     }
 }
 
+impl Default for AstNodeIdGen {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Ident {
     pub id: AstNodeId,
@@ -106,9 +112,7 @@ pub struct Comment {
 pub enum StatementKind {
     Comment(Comment),
     Expression(Expr),
-    Return {
-        expr: Option<Expr>,
-    },
+    Return(Option<Expr>),
     Break,
     Continue,
     Let {
@@ -150,7 +154,10 @@ pub enum ExprKind {
     // StringInterpolation {
     //     parts: Vec<StringInterpolationPart>,
     // },
-    FunctionCall { ident: Ident, args: Vec<Expr> },
+    FunctionCall {
+        ident: Ident,
+        args: Vec<Expr>,
+    },
     // VectorBuiltin {
     //     kind: VectorBuiltinKind,
     //     args: Vec<Expr>,
@@ -159,11 +166,11 @@ pub enum ExprKind {
     //     op: UnOp,
     //     operand: Box<Expr>,
     // },
-    // BinaryOp {
-    //     op: BinOp,
-    //     left: Box<Expr>,
-    //     right: Box<Expr>,
-    // },
+    BinaryOp {
+        op: BinOp,
+        left: Box<Expr>,
+        right: Box<Expr>,
+    },
     // Typecast {
     //     ty_expr: TypeExpr,
     //     sub_expr: Box<Expr>,
@@ -177,7 +184,10 @@ pub enum ExprKind {
     //     args: Vec<Expr>,
     //     method: Ident,
     // },
-    Index { base: Box<Expr>, index: Box<Expr> },
+    Index {
+        base: Box<Expr>,
+        index: Box<Expr>,
+    },
     ParenExpr(Box<Expr>),
     // StructLiteral {
     //     struct_ident: Ident,
@@ -200,4 +210,60 @@ pub enum ExprKind {
     // TypeOf {
     //     inner: Box<Expr>,
     // },
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum BinOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    And,
+    Or,
+    Eq,
+    Neq,
+    Le,
+    Ge,
+    Lt,
+    Gt,
+    BitAnd,
+    BitOr,
+    BitXor,
+    BitNot,
+    Shl,
+    Shr,
+    Modulo,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UnOp {
+    AddrOf,
+    Deref,
+    Not,
+}
+
+impl ToString for BinOp {
+    fn to_string(&self) -> String {
+        match self {
+            BinOp::Add => "+".to_string(),
+            BinOp::Sub => "-".to_string(),
+            BinOp::Mul => "*".to_string(),
+            BinOp::Div => "/".to_string(),
+            BinOp::And => "&&".to_string(),
+            BinOp::Or => "||".to_string(),
+            BinOp::Eq => "==".to_string(),
+            BinOp::Neq => "!=".to_string(),
+            BinOp::Le => "<=".to_string(),
+            BinOp::Ge => ">=".to_string(),
+            BinOp::Lt => "<".to_string(),
+            BinOp::Gt => ">".to_string(),
+            BinOp::BitAnd => "&".to_string(),
+            BinOp::BitOr => "|".to_string(),
+            BinOp::BitXor => "^".to_string(),
+            BinOp::BitNot => "!".to_string(),
+            BinOp::Shl => "<<".to_string(),
+            BinOp::Shr => ">>".to_string(),
+            BinOp::Modulo => "%".to_string(),
+        }
+    }
 }
