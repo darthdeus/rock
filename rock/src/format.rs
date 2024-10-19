@@ -35,7 +35,47 @@ impl Format for Statement {
 }
 
 impl Format for FunctionDef {
+    fn format(&self, style: &FormatStyle) -> String {
+        let param_list = self
+            .params
+            .iter()
+            .map(|x| x.format(style))
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        let body = self.body.format(style);
+
+        format!("fn {}({}) {{\n{}\n}}", self.name.text, param_list, body)
+    }
+}
+
+impl Format for FunctionParam {
+    fn format(&self, style: &FormatStyle) -> String {
+        match self {
+            FunctionParam::Typed(ident, ty) => {
+                format!("{}: {}", ident.format(style), ty.format(style))
+            }
+            FunctionParam::Untyped(ident) => ident.format(style),
+        }
+    }
+}
+
+impl Format for Ident {
     fn format(&self, _: &FormatStyle) -> String {
-        format!("FunctionDef")
+        self.text.to_owned()
+    }
+}
+
+impl Format for TypeExpr {
+    fn format(&self, style: &FormatStyle) -> String {
+        match &self.kind {
+            TypeExprKind::Named(ident) => ident.format(style),
+        }
+    }
+}
+
+impl Format for Block {
+    fn format(&self, _: &FormatStyle) -> String {
+        "".to_string()
     }
 }

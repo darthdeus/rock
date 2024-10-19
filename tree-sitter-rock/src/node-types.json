@@ -8,67 +8,7 @@
       "required": false,
       "types": [
         {
-          "type": "array_literal",
-          "named": true
-        },
-        {
-          "type": "binary_op",
-          "named": true
-        },
-        {
-          "type": "block",
-          "named": true
-        },
-        {
-          "type": "enum_variant",
-          "named": true
-        },
-        {
-          "type": "field_access",
-          "named": true
-        },
-        {
-          "type": "function_call",
-          "named": true
-        },
-        {
-          "type": "identifier",
-          "named": true
-        },
-        {
-          "type": "if",
-          "named": true
-        },
-        {
-          "type": "index",
-          "named": true
-        },
-        {
-          "type": "method_call",
-          "named": true
-        },
-        {
-          "type": "number",
-          "named": true
-        },
-        {
-          "type": "paren_expr",
-          "named": true
-        },
-        {
-          "type": "string",
-          "named": true
-        },
-        {
-          "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "typecast",
-          "named": true
-        },
-        {
-          "type": "unary_op",
+          "type": "expression",
           "named": true
         }
       ]
@@ -83,67 +23,7 @@
       "required": true,
       "types": [
         {
-          "type": "array_literal",
-          "named": true
-        },
-        {
-          "type": "binary_op",
-          "named": true
-        },
-        {
-          "type": "block",
-          "named": true
-        },
-        {
-          "type": "enum_variant",
-          "named": true
-        },
-        {
-          "type": "field_access",
-          "named": true
-        },
-        {
-          "type": "function_call",
-          "named": true
-        },
-        {
-          "type": "identifier",
-          "named": true
-        },
-        {
-          "type": "if",
-          "named": true
-        },
-        {
-          "type": "index",
-          "named": true
-        },
-        {
-          "type": "method_call",
-          "named": true
-        },
-        {
-          "type": "number",
-          "named": true
-        },
-        {
-          "type": "paren_expr",
-          "named": true
-        },
-        {
-          "type": "string",
-          "named": true
-        },
-        {
-          "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "typecast",
-          "named": true
-        },
-        {
-          "type": "unary_op",
+          "type": "expression",
           "named": true
         }
       ]
@@ -183,6 +63,10 @@
           "named": true
         },
         {
+          "type": "expression",
+          "named": true
+        },
+        {
           "type": "field_access",
           "named": true
         },
@@ -219,10 +103,6 @@
           "named": true
         },
         {
-          "type": "struct_literal",
-          "named": true
-        },
-        {
           "type": "typecast",
           "named": true
         },
@@ -242,67 +122,7 @@
         "required": false,
         "types": [
           {
-            "type": "array_literal",
-            "named": true
-          },
-          {
-            "type": "binary_op",
-            "named": true
-          },
-          {
-            "type": "block",
-            "named": true
-          },
-          {
-            "type": "enum_variant",
-            "named": true
-          },
-          {
-            "type": "field_access",
-            "named": true
-          },
-          {
-            "type": "function_call",
-            "named": true
-          },
-          {
-            "type": "identifier",
-            "named": true
-          },
-          {
-            "type": "if",
-            "named": true
-          },
-          {
-            "type": "index",
-            "named": true
-          },
-          {
-            "type": "method_call",
-            "named": true
-          },
-          {
-            "type": "number",
-            "named": true
-          },
-          {
-            "type": "paren_expr",
-            "named": true
-          },
-          {
-            "type": "string",
-            "named": true
-          },
-          {
-            "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "typecast",
-            "named": true
-          },
-          {
-            "type": "unary_op",
+            "type": "expression",
             "named": true
           }
         ]
@@ -400,331 +220,11 @@
     }
   },
   {
-    "type": "field",
-    "named": true,
-    "fields": {
-      "name": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "identifier",
-            "named": true
-          }
-        ]
-      },
-      "type": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "generic_type",
-            "named": true
-          },
-          {
-            "type": "identifier",
-            "named": true
-          },
-          {
-            "type": "primitive_type",
-            "named": true
-          }
-        ]
-      }
-    }
-  },
-  {
-    "type": "field_access",
-    "named": true,
-    "fields": {
-      "base": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "array_literal",
-            "named": true
-          },
-          {
-            "type": "binary_op",
-            "named": true
-          },
-          {
-            "type": "block",
-            "named": true
-          },
-          {
-            "type": "enum_variant",
-            "named": true
-          },
-          {
-            "type": "field_access",
-            "named": true
-          },
-          {
-            "type": "function_call",
-            "named": true
-          },
-          {
-            "type": "identifier",
-            "named": true
-          },
-          {
-            "type": "if",
-            "named": true
-          },
-          {
-            "type": "index",
-            "named": true
-          },
-          {
-            "type": "method_call",
-            "named": true
-          },
-          {
-            "type": "number",
-            "named": true
-          },
-          {
-            "type": "paren_expr",
-            "named": true
-          },
-          {
-            "type": "string",
-            "named": true
-          },
-          {
-            "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "typecast",
-            "named": true
-          },
-          {
-            "type": "unary_op",
-            "named": true
-          }
-        ]
-      },
-      "field": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "identifier",
-            "named": true
-          }
-        ]
-      }
-    }
-  },
-  {
-    "type": "field_values",
+    "type": "expression",
     "named": true,
     "fields": {},
     "children": {
-      "multiple": true,
-      "required": false,
-      "types": [
-        {
-          "type": "array_literal",
-          "named": true
-        },
-        {
-          "type": "binary_op",
-          "named": true
-        },
-        {
-          "type": "block",
-          "named": true
-        },
-        {
-          "type": "enum_variant",
-          "named": true
-        },
-        {
-          "type": "field_access",
-          "named": true
-        },
-        {
-          "type": "function_call",
-          "named": true
-        },
-        {
-          "type": "identifier",
-          "named": true
-        },
-        {
-          "type": "if",
-          "named": true
-        },
-        {
-          "type": "index",
-          "named": true
-        },
-        {
-          "type": "method_call",
-          "named": true
-        },
-        {
-          "type": "number",
-          "named": true
-        },
-        {
-          "type": "paren_expr",
-          "named": true
-        },
-        {
-          "type": "string",
-          "named": true
-        },
-        {
-          "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "typecast",
-          "named": true
-        },
-        {
-          "type": "unary_op",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
-    "type": "fields",
-    "named": true,
-    "fields": {},
-    "children": {
-      "multiple": true,
-      "required": false,
-      "types": [
-        {
-          "type": "field",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
-    "type": "for",
-    "named": true,
-    "fields": {
-      "body": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "block",
-            "named": true
-          }
-        ]
-      },
-      "from": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "identifier",
-            "named": true
-          },
-          {
-            "type": "integer",
-            "named": true
-          }
-        ]
-      },
-      "ident": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "identifier",
-            "named": true
-          }
-        ]
-      },
-      "to": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "array_literal",
-            "named": true
-          },
-          {
-            "type": "binary_op",
-            "named": true
-          },
-          {
-            "type": "block",
-            "named": true
-          },
-          {
-            "type": "enum_variant",
-            "named": true
-          },
-          {
-            "type": "field_access",
-            "named": true
-          },
-          {
-            "type": "function_call",
-            "named": true
-          },
-          {
-            "type": "identifier",
-            "named": true
-          },
-          {
-            "type": "if",
-            "named": true
-          },
-          {
-            "type": "index",
-            "named": true
-          },
-          {
-            "type": "method_call",
-            "named": true
-          },
-          {
-            "type": "number",
-            "named": true
-          },
-          {
-            "type": "paren_expr",
-            "named": true
-          },
-          {
-            "type": "string",
-            "named": true
-          },
-          {
-            "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "typecast",
-            "named": true
-          },
-          {
-            "type": "unary_op",
-            "named": true
-          }
-        ]
-      }
-    }
-  },
-  {
-    "type": "function_call",
-    "named": true,
-    "fields": {},
-    "children": {
-      "multiple": true,
+      "multiple": false,
       "required": true,
       "types": [
         {
@@ -792,6 +292,180 @@
           "named": true
         }
       ]
+    }
+  },
+  {
+    "type": "field",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "type": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "generic_type",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "primitive_type",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "field_access",
+    "named": true,
+    "fields": {
+      "base": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "expression",
+            "named": true
+          }
+        ]
+      },
+      "field": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "field_values",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "expression",
+          "named": true
+        },
+        {
+          "type": "identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "fields",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "field",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "for",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "block",
+            "named": true
+          }
+        ]
+      },
+      "from": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "integer",
+            "named": true
+          }
+        ]
+      },
+      "ident": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "to": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "expression",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "function_call",
+    "named": true,
+    "fields": {
+      "args": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": ",",
+            "named": false
+          },
+          {
+            "type": "expression",
+            "named": true
+          }
+        ]
+      },
+      "ident": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {
@@ -915,67 +589,7 @@
         "required": true,
         "types": [
           {
-            "type": "array_literal",
-            "named": true
-          },
-          {
-            "type": "binary_op",
-            "named": true
-          },
-          {
-            "type": "block",
-            "named": true
-          },
-          {
-            "type": "enum_variant",
-            "named": true
-          },
-          {
-            "type": "field_access",
-            "named": true
-          },
-          {
-            "type": "function_call",
-            "named": true
-          },
-          {
-            "type": "identifier",
-            "named": true
-          },
-          {
-            "type": "if",
-            "named": true
-          },
-          {
-            "type": "index",
-            "named": true
-          },
-          {
-            "type": "method_call",
-            "named": true
-          },
-          {
-            "type": "number",
-            "named": true
-          },
-          {
-            "type": "paren_expr",
-            "named": true
-          },
-          {
-            "type": "string",
-            "named": true
-          },
-          {
-            "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "typecast",
-            "named": true
-          },
-          {
-            "type": "unary_op",
+            "type": "expression",
             "named": true
           }
         ]
@@ -1117,67 +731,7 @@
         "required": true,
         "types": [
           {
-            "type": "array_literal",
-            "named": true
-          },
-          {
-            "type": "binary_op",
-            "named": true
-          },
-          {
-            "type": "block",
-            "named": true
-          },
-          {
-            "type": "enum_variant",
-            "named": true
-          },
-          {
-            "type": "field_access",
-            "named": true
-          },
-          {
-            "type": "function_call",
-            "named": true
-          },
-          {
-            "type": "identifier",
-            "named": true
-          },
-          {
-            "type": "if",
-            "named": true
-          },
-          {
-            "type": "index",
-            "named": true
-          },
-          {
-            "type": "method_call",
-            "named": true
-          },
-          {
-            "type": "number",
-            "named": true
-          },
-          {
-            "type": "paren_expr",
-            "named": true
-          },
-          {
-            "type": "string",
-            "named": true
-          },
-          {
-            "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "typecast",
-            "named": true
-          },
-          {
-            "type": "unary_op",
+            "type": "expression",
             "named": true
           }
         ]
@@ -1187,67 +741,7 @@
         "required": true,
         "types": [
           {
-            "type": "array_literal",
-            "named": true
-          },
-          {
-            "type": "binary_op",
-            "named": true
-          },
-          {
-            "type": "block",
-            "named": true
-          },
-          {
-            "type": "enum_variant",
-            "named": true
-          },
-          {
-            "type": "field_access",
-            "named": true
-          },
-          {
-            "type": "function_call",
-            "named": true
-          },
-          {
-            "type": "identifier",
-            "named": true
-          },
-          {
-            "type": "if",
-            "named": true
-          },
-          {
-            "type": "index",
-            "named": true
-          },
-          {
-            "type": "method_call",
-            "named": true
-          },
-          {
-            "type": "number",
-            "named": true
-          },
-          {
-            "type": "paren_expr",
-            "named": true
-          },
-          {
-            "type": "string",
-            "named": true
-          },
-          {
-            "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "typecast",
-            "named": true
-          },
-          {
-            "type": "unary_op",
+            "type": "expression",
             "named": true
           }
         ]
@@ -1263,27 +757,7 @@
       "required": true,
       "types": [
         {
-          "type": "array_literal",
-          "named": true
-        },
-        {
-          "type": "binary_op",
-          "named": true
-        },
-        {
-          "type": "block",
-          "named": true
-        },
-        {
-          "type": "enum_variant",
-          "named": true
-        },
-        {
-          "type": "field_access",
-          "named": true
-        },
-        {
-          "type": "function_call",
+          "type": "expression",
           "named": true
         },
         {
@@ -1295,43 +769,7 @@
           "named": true
         },
         {
-          "type": "if",
-          "named": true
-        },
-        {
-          "type": "index",
-          "named": true
-        },
-        {
-          "type": "method_call",
-          "named": true
-        },
-        {
-          "type": "number",
-          "named": true
-        },
-        {
-          "type": "paren_expr",
-          "named": true
-        },
-        {
           "type": "primitive_type",
-          "named": true
-        },
-        {
-          "type": "string",
-          "named": true
-        },
-        {
-          "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "typecast",
-          "named": true
-        },
-        {
-          "type": "unary_op",
           "named": true
         }
       ]
@@ -1350,67 +788,7 @@
             "named": false
           },
           {
-            "type": "array_literal",
-            "named": true
-          },
-          {
-            "type": "binary_op",
-            "named": true
-          },
-          {
-            "type": "block",
-            "named": true
-          },
-          {
-            "type": "enum_variant",
-            "named": true
-          },
-          {
-            "type": "field_access",
-            "named": true
-          },
-          {
-            "type": "function_call",
-            "named": true
-          },
-          {
-            "type": "identifier",
-            "named": true
-          },
-          {
-            "type": "if",
-            "named": true
-          },
-          {
-            "type": "index",
-            "named": true
-          },
-          {
-            "type": "method_call",
-            "named": true
-          },
-          {
-            "type": "number",
-            "named": true
-          },
-          {
-            "type": "paren_expr",
-            "named": true
-          },
-          {
-            "type": "string",
-            "named": true
-          },
-          {
-            "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "typecast",
-            "named": true
-          },
-          {
-            "type": "unary_op",
+            "type": "expression",
             "named": true
           }
         ]
@@ -1420,67 +798,7 @@
         "required": true,
         "types": [
           {
-            "type": "array_literal",
-            "named": true
-          },
-          {
-            "type": "binary_op",
-            "named": true
-          },
-          {
-            "type": "block",
-            "named": true
-          },
-          {
-            "type": "enum_variant",
-            "named": true
-          },
-          {
-            "type": "field_access",
-            "named": true
-          },
-          {
-            "type": "function_call",
-            "named": true
-          },
-          {
-            "type": "identifier",
-            "named": true
-          },
-          {
-            "type": "if",
-            "named": true
-          },
-          {
-            "type": "index",
-            "named": true
-          },
-          {
-            "type": "method_call",
-            "named": true
-          },
-          {
-            "type": "number",
-            "named": true
-          },
-          {
-            "type": "paren_expr",
-            "named": true
-          },
-          {
-            "type": "string",
-            "named": true
-          },
-          {
-            "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "typecast",
-            "named": true
-          },
-          {
-            "type": "unary_op",
+            "type": "expression",
             "named": true
           }
         ]
@@ -1529,67 +847,7 @@
       "required": true,
       "types": [
         {
-          "type": "array_literal",
-          "named": true
-        },
-        {
-          "type": "binary_op",
-          "named": true
-        },
-        {
-          "type": "block",
-          "named": true
-        },
-        {
-          "type": "enum_variant",
-          "named": true
-        },
-        {
-          "type": "field_access",
-          "named": true
-        },
-        {
-          "type": "function_call",
-          "named": true
-        },
-        {
-          "type": "identifier",
-          "named": true
-        },
-        {
-          "type": "if",
-          "named": true
-        },
-        {
-          "type": "index",
-          "named": true
-        },
-        {
-          "type": "method_call",
-          "named": true
-        },
-        {
-          "type": "number",
-          "named": true
-        },
-        {
-          "type": "paren_expr",
-          "named": true
-        },
-        {
-          "type": "string",
-          "named": true
-        },
-        {
-          "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "typecast",
-          "named": true
-        },
-        {
-          "type": "unary_op",
+          "type": "expression",
           "named": true
         }
       ]
@@ -1609,67 +867,7 @@
       "required": true,
       "types": [
         {
-          "type": "array_literal",
-          "named": true
-        },
-        {
-          "type": "binary_op",
-          "named": true
-        },
-        {
-          "type": "block",
-          "named": true
-        },
-        {
-          "type": "enum_variant",
-          "named": true
-        },
-        {
-          "type": "field_access",
-          "named": true
-        },
-        {
-          "type": "function_call",
-          "named": true
-        },
-        {
-          "type": "identifier",
-          "named": true
-        },
-        {
-          "type": "if",
-          "named": true
-        },
-        {
-          "type": "index",
-          "named": true
-        },
-        {
-          "type": "method_call",
-          "named": true
-        },
-        {
-          "type": "number",
-          "named": true
-        },
-        {
-          "type": "paren_expr",
-          "named": true
-        },
-        {
-          "type": "string",
-          "named": true
-        },
-        {
-          "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "typecast",
-          "named": true
-        },
-        {
-          "type": "unary_op",
+          "type": "expression",
           "named": true
         }
       ]
@@ -1724,19 +922,7 @@
       "required": true,
       "types": [
         {
-          "type": "array_literal",
-          "named": true
-        },
-        {
           "type": "assignment",
-          "named": true
-        },
-        {
-          "type": "binary_op",
-          "named": true
-        },
-        {
-          "type": "block",
           "named": true
         },
         {
@@ -1744,11 +930,7 @@
           "named": true
         },
         {
-          "type": "enum_variant",
-          "named": true
-        },
-        {
-          "type": "field_access",
+          "type": "expression",
           "named": true
         },
         {
@@ -1756,19 +938,7 @@
           "named": true
         },
         {
-          "type": "function_call",
-          "named": true
-        },
-        {
-          "type": "identifier",
-          "named": true
-        },
-        {
           "type": "if",
-          "named": true
-        },
-        {
-          "type": "index",
           "named": true
         },
         {
@@ -1776,35 +946,7 @@
           "named": true
         },
         {
-          "type": "method_call",
-          "named": true
-        },
-        {
-          "type": "number",
-          "named": true
-        },
-        {
-          "type": "paren_expr",
-          "named": true
-        },
-        {
           "type": "return",
-          "named": true
-        },
-        {
-          "type": "string",
-          "named": true
-        },
-        {
-          "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "typecast",
-          "named": true
-        },
-        {
-          "type": "unary_op",
           "named": true
         },
         {
@@ -1873,27 +1015,7 @@
       "required": true,
       "types": [
         {
-          "type": "array_literal",
-          "named": true
-        },
-        {
-          "type": "binary_op",
-          "named": true
-        },
-        {
-          "type": "block",
-          "named": true
-        },
-        {
-          "type": "enum_variant",
-          "named": true
-        },
-        {
-          "type": "field_access",
-          "named": true
-        },
-        {
-          "type": "function_call",
+          "type": "expression",
           "named": true
         },
         {
@@ -1905,43 +1027,7 @@
           "named": true
         },
         {
-          "type": "if",
-          "named": true
-        },
-        {
-          "type": "index",
-          "named": true
-        },
-        {
-          "type": "method_call",
-          "named": true
-        },
-        {
-          "type": "number",
-          "named": true
-        },
-        {
-          "type": "paren_expr",
-          "named": true
-        },
-        {
           "type": "primitive_type",
-          "named": true
-        },
-        {
-          "type": "string",
-          "named": true
-        },
-        {
-          "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "typecast",
-          "named": true
-        },
-        {
-          "type": "unary_op",
           "named": true
         }
       ]
@@ -1995,71 +1081,11 @@
       "required": true,
       "types": [
         {
-          "type": "array_literal",
-          "named": true
-        },
-        {
-          "type": "binary_op",
-          "named": true
-        },
-        {
-          "type": "block",
-          "named": true
-        },
-        {
-          "type": "enum_variant",
-          "named": true
-        },
-        {
-          "type": "field_access",
-          "named": true
-        },
-        {
-          "type": "function_call",
-          "named": true
-        },
-        {
-          "type": "identifier",
-          "named": true
-        },
-        {
-          "type": "if",
-          "named": true
-        },
-        {
-          "type": "index",
-          "named": true
-        },
-        {
-          "type": "method_call",
-          "named": true
-        },
-        {
-          "type": "number",
-          "named": true
-        },
-        {
-          "type": "paren_expr",
-          "named": true
-        },
-        {
-          "type": "string",
-          "named": true
-        },
-        {
-          "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "typecast",
+          "type": "expression",
           "named": true
         },
         {
           "type": "un_op",
-          "named": true
-        },
-        {
-          "type": "unary_op",
           "named": true
         }
       ]

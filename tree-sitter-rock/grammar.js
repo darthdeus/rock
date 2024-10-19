@@ -86,7 +86,7 @@ module.exports = grammar({
         ":",
         field("type", $._type_expr),
         "=",
-        field("value", $._expression),
+        field("value", $.expression),
         ";",
       ),
 
@@ -138,7 +138,7 @@ module.exports = grammar({
         optional(","),
       ),
 
-    _expression: ($) =>
+    expression: ($) =>
       choice(
         $.identifier,
         $.number,
@@ -207,9 +207,9 @@ module.exports = grammar({
       prec(
         5,
         seq(
-          field("base", $._expression),
+          field("base", $.expression),
           "[",
-          field("index", $._expression),
+          field("index", $.expression),
           "]",
         ),
       ),
@@ -241,7 +241,7 @@ module.exports = grammar({
           $.if,
           seq(
             choice(
-              $._expression,
+              $.expression,
               $.return,
               $.let,
               $.assignment,
@@ -260,7 +260,7 @@ module.exports = grammar({
         // TODO: should be expression, but fine for now
         field("from", choice($.integer, $.identifier)),
         "..",
-        field("to", $._expression),
+        field("to", $.expression),
         field("body", $.block),
       ),
 
@@ -275,7 +275,7 @@ module.exports = grammar({
       seq(
         "{",
         field("statements", repeat($.statement)),
-        field("return_expr", optional($._expression)),
+        field("return_expr", optional($.expression)),
         "}",
       ),
 
@@ -288,16 +288,24 @@ module.exports = grammar({
       ),
 
     function_call: ($) =>
-      prec(PREC.call, seq($.identifier, "(", commaSep($._expression), ")")),
+      prec(
+        PREC.call,
+        seq(
+          field("ident", $.identifier),
+          "(",
+          field("args", commaSep($.expression)),
+          ")",
+        ),
+      ),
 
     struct_literal: ($) => prec(1, seq($.identifier, $.field_values)),
 
-    array_literal: ($) => seq("[", repeat(seq($._expression)), "]"),
+    array_literal: ($) => seq("[", repeat(seq($.expression)), "]"),
 
     field_values: ($) =>
       seq(
         "{",
-        repeat(seq($.identifier, ":", $._expression, optional(","))),
+        repeat(seq($.identifier, ":", $.expression, optional(","))),
         "}",
       ),
 
@@ -330,29 +338,29 @@ module.exports = grammar({
 
     un_op: ($) => choice("-", "*", "&"),
 
-    unary_op: ($) => prec(PREC.unary, seq($.un_op, $._expression)),
+    unary_op: ($) => prec(PREC.unary, seq($.un_op, $.expression)),
     binary_op: ($) =>
-      prec.left(1, seq($._expression, $.bin_op, $._expression_no_struct)),
+      prec.left(1, seq($.expression, $.bin_op, $._expression_no_struct)),
 
-    typecast: ($) => seq($._expression, "as", $._type_expr),
+    typecast: ($) => seq($.expression, "as", $._type_expr),
 
     comment: ($) => seq("//", /.*/),
 
     field_access: ($) =>
       prec(
         PREC.field,
-        seq(field("base", $._expression), ".", field("field", $.identifier)),
+        seq(field("base", $.expression), ".", field("field", $.identifier)),
       ),
 
     method_call: ($) =>
       prec(
         PREC.call,
         seq(
-          field("base", $._expression),
+          field("base", $.expression),
           ".",
           field("method", $.identifier),
           "(",
-          field("args", commaSep($._expression)),
+          field("args", commaSep($.expression)),
           ")",
         ),
       ),
@@ -370,8 +378,8 @@ module.exports = grammar({
         ),
       ),
 
-    paren_expr: ($) => seq("(", $._expression, ")"),
-    return: ($) => seq("return", $._expression),
+    paren_expr: ($) => seq("(", $.expression, ")"),
+    return: ($) => seq("return", $.expression),
 
     let: ($) =>
       seq(
@@ -379,10 +387,10 @@ module.exports = grammar({
         $.identifier,
         optional(seq(":", $._type_expr)),
         "=",
-        $._expression,
+        $.expression,
       ),
 
-    assignment: ($) => seq($._expression, "=", $._expression),
+    assignment: ($) => seq($.expression, "=", $.expression),
 
     primitive_type: ($) =>
       choice(
