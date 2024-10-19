@@ -1,26 +1,51 @@
-use ariadne::{Label, Report, ReportKind, Source};
+use ariadne::{Label, Report, ReportKind};
+use source_code::Span;
 use tree_sitter::Node;
 
 use crate::*;
 
+use crate::parser::Source;
+
 pub trait NodeExt {
-    fn report_error(&self, source: &str, message: &str);
-    fn report_unexpected_kind(&self, source: &str, ty: &str);
+    fn report_error(&self, source: &Source, message: &str);
+    fn report_unexpected_kind(&self, source: &Source, ty: &str);
+    fn to_span_nofile(&self) -> Span;
+    fn to_span(&self, file: ustr::Ustr) -> Span;
+    fn text<'a>(&self, source: &'a Source) -> Result<&'a str>;
 }
 
 impl<'a> NodeExt for Node<'a> {
-    fn report_error(&self, source: &str, message: &str) {
-        Report::build(ReportKind::Error, "file.rock", 0)
+    fn report_error(&self, source: &Source, message: &str) {
+        let fname = source.file.as_deref().unwrap_or("<unknown>");
+
+        Report::build(ReportKind::Error, fname, 0)
             .with_label(
-                Label::new(("file.rock", self.start_byte()..self.end_byte())).with_message(message),
+                Label::new((fname, self.start_byte()..self.end_byte())).with_message(message),
             )
             .finish()
-            .print(("file.rock", Source::from(source)))
+            .print((fname, ariadne::Source::from(&source.code)))
             .unwrap();
     }
 
-    fn report_unexpected_kind(&self, source: &str, ty: &str) {
+    fn report_unexpected_kind(&self, source: &Source, ty: &str) {
         self.report_error(source, &format!("unexpected {} kind: {}", ty, self.kind()));
+    }
+
+    fn to_span_nofile(&self) -> Span {
+        self.to_span("<unknown>".into())
+    }
+
+    fn to_span(&self, file: ustr::Ustr) -> Span {
+        Span {
+            file,
+            line_range: (self.start_position().row, self.end_position().row),
+            col_range: (self.start_position().column, self.end_position().column),
+            offset_range: (self.start_byte(), self.end_byte()),
+        }
+    }
+
+    fn text<'b>(&self, source: &'b Source) -> Result<&'b str> {
+        Ok(self.utf8_text(source.code.as_bytes())?)
     }
 }
 

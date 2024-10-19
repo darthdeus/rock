@@ -22,7 +22,7 @@ impl Span {
 
     pub fn start(&self) -> LineCol {
         LineCol {
-            file: self.file.clone(),
+            file: self.file,
             line: self.line_range.0,
             col: self.col_range.0,
             offset: self.offset_range.0,
@@ -31,7 +31,7 @@ impl Span {
 
     pub fn end(&self) -> LineCol {
         LineCol {
-            file: self.file.clone(),
+            file: self.file,
             line: self.line_range.1,
             col: self.col_range.1,
             offset: self.offset_range.1,
@@ -40,9 +40,8 @@ impl Span {
 
     /// Returns whether this span contains the given location.
     pub fn contains_loc(&self, query_loc: &LineCol) -> bool {
-        return (query_loc.file == self.file)
-            && (query_loc.offset >= self.offset_range.0
-                && query_loc.offset <= self.offset_range.1);
+        (query_loc.file == self.file)
+            && (query_loc.offset >= self.offset_range.0 && query_loc.offset <= self.offset_range.1)
     }
 }
 

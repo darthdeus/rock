@@ -12,6 +12,11 @@ macro_rules! bail_unexpected {
     };
 }
 
+pub struct Source {
+    pub code: String,
+    pub file: Option<String>,
+}
+
 pub struct Parser {
     id_gen: AstNodeIdGen,
 }
@@ -23,11 +28,11 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self, source: &str) -> Result<Vec<TopLevel>> {
+    pub fn parse(&mut self, source: &Source) -> Result<Vec<TopLevel>> {
         let mut parser = tree_sitter::Parser::new();
         parser.set_language(&tree_sitter_rock::LANGUAGE.into())?;
 
-        let tree = parser.parse(source, None).unwrap();
+        let tree = parser.parse(&source.code, None).unwrap();
 
         let root = tree.root_node();
         let mut cursor = root.walk();
@@ -68,20 +73,21 @@ impl Default for Parser {
     }
 }
 
-pub fn parse_statement(node: Node, source: &str, id_gen: &mut AstNodeIdGen) -> Result<Statement> {
+pub fn parse_statement(
+    node: Node,
+    source: &Source,
+    id_gen: &mut AstNodeIdGen,
+) -> Result<Statement> {
     let node = node
         .child(0)
         .ok_or_else(|| anyhow!("Statement must have a child"))?;
 
     let kind = match node.kind() {
-        "comment" => {
-            let text = node.utf8_text(source.as_bytes())?;
-            StatementKind::Comment(Comment {
-                id: id_gen.id_gen(),
-                span: Span::unknown(),
-                text: text.to_string(),
-            })
-        }
+        "comment" => StatementKind::Comment(Comment {
+            id: id_gen.id_gen(),
+            span: Span::unknown(),
+            text: node.text(source)?.to_string(),
+        }),
 
         "expression" => {
             let expr = parse_expression(node, source, id_gen)?;
@@ -102,13 +108,13 @@ pub fn parse_statement(node: Node, source: &str, id_gen: &mut AstNodeIdGen) -> R
 
 pub fn parse_function_def(
     child: Node,
-    source: &str,
+    source: &Source,
     id_gen: &mut AstNodeIdGen,
 ) -> Result<FunctionDef> {
     let name_node = child
         .child_by_field_name("name")
         .ok_or_else(|| anyhow!("No name on function_def"))?;
-    let fn_name = name_node.utf8_text(source.as_bytes())?;
+    let fn_name = name_node.text(source)?;
 
     let params_node = child
         .child_by_field_name("parameters")
@@ -119,7 +125,7 @@ pub fn parse_function_def(
 
     for i in 0..params_node.named_child_count() {
         if let Some(node) = params_node.named_child(i) {
-            let param_text = node.utf8_text(source.as_bytes())?;
+            let param_text = node.text(source)?;
 
             let ident = Ident {
                 id: id_gen.id_gen(),
@@ -139,7 +145,7 @@ pub fn parse_function_def(
                         kind: TypeExprKind::Named(Ident {
                             id: id_gen.id_gen(),
                             span: Span::unknown(),
-                            text: type_expr_node.utf8_text(source.as_bytes())?.into(),
+                            text: type_expr_node.text(source)?.into(),
                         }),
                     };
 
@@ -162,7 +168,7 @@ pub fn parse_function_def(
     let return_type_node = child.child_by_field_name("return_type");
 
     let return_type = if let Some(node) = return_type_node {
-        let text = node.utf8_text(source.as_bytes())?;
+        let text = node.text(source)?;
 
         Some(TypeExpr {
             id: id_gen.id_gen(),
@@ -199,7 +205,7 @@ pub fn parse_function_def(
     })
 }
 
-pub fn parse_block(node: Node, source: &str, id_gen: &mut AstNodeIdGen) -> Result<Block> {
+pub fn parse_block(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) -> Result<Block> {
     let mut statements = Vec::new();
     let return_expr = None;
 
@@ -218,7 +224,7 @@ pub fn parse_block(node: Node, source: &str, id_gen: &mut AstNodeIdGen) -> Resul
     })
 }
 
-pub fn parse_expression(node: Node, source: &str, id_gen: &mut AstNodeIdGen) -> Result<Expr> {
+pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) -> Result<Expr> {
     if node.child_count() == 0 {
         return Ok(Expr {
             id: id_gen.id_gen(),
@@ -226,7 +232,7 @@ pub fn parse_expression(node: Node, source: &str, id_gen: &mut AstNodeIdGen) -> 
             kind: ExprKind::Path(Ident {
                 id: id_gen.id_gen(),
                 span: Span::unknown(),
-                text: node.utf8_text(source.as_bytes())?.into(),
+                text: node.text(source)?.into(),
             }),
         });
     }
@@ -240,7 +246,7 @@ pub fn parse_expression(node: Node, source: &str, id_gen: &mut AstNodeIdGen) -> 
             let ident = Ident {
                 id: id_gen.id_gen(),
                 span: Span::unknown(),
-                text: node.utf8_text(source.as_bytes())?.into(),
+                text: node.text(source)?.into(),
             };
 
             let mut args = Vec::new();
