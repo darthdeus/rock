@@ -11,6 +11,15 @@ macro_rules! bail_unexpected {
     };
 }
 
+macro_rules! field_or_bail {
+    ($node:expr, $field_name:expr, $source:expr) => {
+        $node.child_by_field_name($field_name).ok_or_else(|| {
+            $node.report_error($source, &format!("No field '{}' on node", $field_name));
+            anyhow!("No field '{}' on node", $field_name)
+        })?
+    };
+}
+
 pub struct Source {
     pub code: String,
     pub file: Option<ustr::Ustr>,
@@ -323,21 +332,13 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
         }
 
         "binary_op" => {
-            // let op = node.text(source)?;
-
-            let left_node = node
-                .child_by_field_name("lhs")
-                .ok_or_else(|| anyhow!("No lhs on binary_op"))?;
+            let left_node = field_or_bail!(node, "left", source);
             let left = parse_expression(left_node, source, id_gen)?;
 
-            let right_node = node
-                .child_by_field_name("rhs")
-                .ok_or_else(|| anyhow!("No rhs on binary_op"))?;
+            let right_node = field_or_bail!(node, "right", source);
             let right = parse_expression(right_node, source, id_gen)?;
 
-            let op_node = node
-                .child_by_field_name("op")
-                .ok_or_else(|| anyhow!("No op on binary_op"))?;
+            let op_node = field_or_bail!(node, "op", source);
 
             let op = match op_node.text(source)? {
                 "+" => BinOp::Add,
