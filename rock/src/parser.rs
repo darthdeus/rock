@@ -1,8 +1,16 @@
 use anyhow::{anyhow, bail, Result};
+use debug::NodeExt;
 use source_code::Span;
 use tree_sitter::Node;
 
 use crate::*;
+
+macro_rules! bail_unexpected {
+    ($node:expr, $source:expr, $ty:expr) => {
+        $node.report_unexpected_kind($source, $ty);
+        bail!("unexpected {} kind: '{}'", $ty, $node.kind());
+    };
+}
 
 pub struct Parser {
     id_gen: AstNodeIdGen,
@@ -45,7 +53,7 @@ impl Parser {
                 }
 
                 _ => {
-                    bail!("unexpected child: {:?}", child);
+                    bail_unexpected!(child, source, "top_level");
                 }
             }
         }
@@ -81,7 +89,7 @@ pub fn parse_statement(node: Node, source: &str, id_gen: &mut AstNodeIdGen) -> R
         }
 
         _ => {
-            bail!("unexpected statement kind: '{}'", node.kind())
+            bail_unexpected!(node, source, "statement");
         }
     };
 
@@ -119,9 +127,7 @@ pub fn parse_function_def(
                 text: param_text.into(),
             };
 
-            let param_kind = node.kind();
-
-            match param_kind {
+            match node.kind() {
                 "typed_param" => {
                     let type_expr_node = node
                         .child_by_field_name("type_expr")
@@ -145,7 +151,7 @@ pub fn parse_function_def(
                 }
 
                 _ => {
-                    bail!("unexpected param kind: '{}'", param_kind);
+                    bail_unexpected!(node, source, "param");
                 }
             }
         }
@@ -254,7 +260,7 @@ pub fn parse_expression(node: Node, source: &str, id_gen: &mut AstNodeIdGen) -> 
         }
 
         _ => {
-            bail!("unexpected expression kind: '{}'", node.kind());
+            bail_unexpected!(node, source, "expression");
         }
     };
 
