@@ -29,8 +29,96 @@ impl Format for TopLevel {
 }
 
 impl Format for Statement {
-    fn format(&self, _: &FormatStyle) -> String {
-        format!("Statement")
+    fn format(&self, s: &FormatStyle) -> String {
+        match &self.kind {
+            StatementKind::Comment(text) => {
+                format!("// {}", text.text)
+            }
+            StatementKind::Expression(expr) => expr.format(s),
+            StatementKind::Return(None) => "return;".to_string(),
+            StatementKind::Return(Some(expr)) => format!("return {};", expr.format(s)),
+            StatementKind::Break => "break".to_string(),
+            StatementKind::Continue => "continue".to_string(),
+            StatementKind::Let {
+                ident,
+                ty_expr,
+                expr,
+            } => {
+                let ty_expr = match ty_expr {
+                    Some(t) => format!(": {}", t.format(s)),
+                    None => "".to_string(),
+                };
+                format!("let {}{} = {};", ident.format(s), ty_expr, expr.format(s))
+            }
+            StatementKind::Assign { lhs, rhs } => format!("{} = {};", lhs.format(s), rhs.format(s)),
+            StatementKind::If {
+                cond,
+                then_block,
+                else_block,
+            } => {
+                let else_block = match else_block {
+                    Some(b) => format!("else {{\n{}\n}}", b.format(s)),
+                    None => "".to_string(),
+                };
+                format!(
+                    "if {} {{\n{}\n}} {}",
+                    cond.format(s),
+                    then_block.format(s),
+                    else_block
+                )
+            }
+            StatementKind::For {
+                var,
+                iterable,
+                body,
+            } => {
+                format!(
+                    "for {} in {} {{\n{}\n}}",
+                    var.format(s),
+                    iterable.format(s),
+                    body.format(s)
+                )
+            }
+            StatementKind::While { cond, body } => {
+                format!("while {} {{\n{}\n}}", cond.format(s), body.format(s))
+            }
+        }
+    }
+}
+
+impl Format for Expr {
+    fn format(&self, s: &FormatStyle) -> String {
+        match &self.kind {
+            ExprKind::Path(ident) => ident.format(s),
+            ExprKind::NumLiteral(num) => num.to_string(),
+            ExprKind::SelfIdent => "self".to_string(),
+            ExprKind::BoolLiteral(val) => val.to_string(),
+            ExprKind::StringLiteral(string) => string.clone(),
+            ExprKind::NullLiteral => "null".to_string(),
+            ExprKind::OptionSomeLiteral(expr) => {
+                format!("Some({})", expr.format(s))
+            }
+            ExprKind::OptionNoneLiteral => "None".to_string(),
+            ExprKind::FunctionCall { ident, args } => {
+                let args = args
+                    .iter()
+                    .map(|x| x.format(s))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("{}({})", ident.format(s), args)
+            }
+            ExprKind::BinaryOp { op, left, right } => {
+                format!("{} {} {}", left.format(s), op.to_string(), right.format(s))
+            }
+            ExprKind::Index { base, index } => {
+                format!("{}[{}]", base.format(s), index.format(s))
+            }
+
+            ExprKind::ParenExpr(expr) => {
+                format!("({})", expr.format(s))
+            }
+            ExprKind::Block(block) => block.format(s),
+        }
     }
 }
 
