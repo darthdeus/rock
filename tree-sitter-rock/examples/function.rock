@@ -1,3 +1,6 @@
+print(1 + 2);
+print(1, 2 + 3);
+
 // this is a function
 fn foo(x: string, y, z: num) -> num {
   print(z, x + y);

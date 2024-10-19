@@ -318,9 +318,16 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
         });
     }
 
-    let node = node
-        .child(0)
-        .ok_or_else(|| anyhow!("Expression must have a child"))?;
+    // println!("BEFORE parsing {}: {}", node.kind(), node.to_sexp());
+
+    let node = if node.kind() == "expression" {
+        node.child(0)
+            .ok_or_else(|| anyhow!("Expression must have a child"))?
+    } else {
+        node
+    };
+
+    // println!("GOT CHILD 0 parsing {}: {}", node.kind(), node.to_sexp());
 
     let kind = match node.kind() {
         "identifier" => ExprKind::Path(Ident {
@@ -344,8 +351,11 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
                 .child_by_field_name("args")
                 .ok_or_else(|| anyhow!("No arguments on function_call"))?;
 
+            // println!("Iterating func args: {}", args_node.to_sexp());
+
             for i in 0..args_node.named_child_count() {
                 if let Some(node) = args_node.named_child(i) {
+                    // println!("[{}]: {}", i, node.to_sexp());
                     let expr = parse_expression(node, source, id_gen)?;
                     args.push(expr);
                 }
