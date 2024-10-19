@@ -310,10 +310,12 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
         }),
 
         "function_call" => {
+            let ident_node = field_or_bail!(node, "ident", source);
+
             let ident = Ident {
                 id: id_gen.id_gen(),
                 span: node.to_source_span(source),
-                text: node.text(source)?.into(),
+                text: ident_node.text(source)?.into(),
             };
 
             let mut args = Vec::new();

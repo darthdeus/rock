@@ -131,7 +131,17 @@ impl Format for FunctionDef {
 
         let body = self.body.format(style);
 
-        format!("fn {}({}) {}", self.name.text, param_list, body)
+        if self.return_type.is_none() {
+            format!("fn {}({}) {}", self.name.text, param_list, body)
+        } else {
+            format!(
+                "fn {}({}) -> {} {}",
+                self.name.text,
+                param_list,
+                self.return_type.as_ref().unwrap().format(style),
+                body
+            )
+        }
     }
 }
 
