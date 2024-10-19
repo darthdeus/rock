@@ -12,7 +12,7 @@ pub fn format_top_level(top_level: Vec<TopLevel>) -> String {
         .into_iter()
         .map(|x| x.format(&FormatStyle::default()))
         .collect::<Vec<_>>()
-        .join("\n")
+        .join("\n\n")
 }
 
 pub trait Format {
@@ -31,9 +31,7 @@ impl Format for TopLevel {
 impl Format for Statement {
     fn format(&self, s: &FormatStyle) -> String {
         match &self.kind {
-            StatementKind::Comment(text) => {
-                format!("// {}", text.text)
-            }
+            StatementKind::Comment(text) => text.text.clone(),
             StatementKind::Expression(expr) => expr.format(s),
             StatementKind::Return(None) => "return;".to_string(),
             StatementKind::Return(Some(expr)) => format!("return {};", expr.format(s)),
@@ -133,7 +131,7 @@ impl Format for FunctionDef {
 
         let body = self.body.format(style);
 
-        format!("fn {}({}) {{\n{}\n}}", self.name.text, param_list, body)
+        format!("fn {}({}) {}", self.name.text, param_list, body)
     }
 }
 
@@ -163,7 +161,26 @@ impl Format for TypeExpr {
 }
 
 impl Format for Block {
-    fn format(&self, _: &FormatStyle) -> String {
-        "".to_string()
+    fn format(&self, s: &FormatStyle) -> String {
+        let statements = self
+            .statements
+            .iter()
+            .map(|x| format!("    {}", x.format(s)))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let return_expr = match &self.return_expr {
+            Some(expr) => format!("return {};", expr.format(s)),
+            None => "".to_string(),
+        };
+
+        format!(
+            "{{\n{}\n}}",
+            if return_expr.is_empty() {
+                statements.to_string()
+            } else {
+                format!("{}\n{}", statements, return_expr)
+            }
+        )
     }
 }

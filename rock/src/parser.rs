@@ -226,8 +226,6 @@ pub fn parse_function_def(
         }
     }
 
-    // println!("parsed params: {:#?}", params);
-
     let return_type_node = child.child_by_field_name("return_type");
 
     let return_type = if let Some(node) = return_type_node {
