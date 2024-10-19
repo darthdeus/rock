@@ -318,12 +318,7 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
         });
     }
 
-    // let node = if node.kind() == "expression" {
-    //     node.child(0)
-    //         .ok_or_else(|| anyhow!("Expression must have a child"))?
-    // } else {
-    //     node
-    // };
+    // println!("parsing expression: '{}'", node.to_sexp());
 
     let kind = match node.kind() {
         "identifier" => ExprKind::Path(Ident {
@@ -343,12 +338,27 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
 
             let mut args = Vec::new();
 
-            let args_node = node
-                .child_by_field_name("args")
-                .ok_or_else(|| anyhow!("No arguments on function_call"))?;
+            // let args_node = node
+            //     .child_by_field_name("args")
+            //     .ok_or_else(|| anyhow!("No arguments on function_call"))?;
 
-            for i in 0..args_node.named_child_count() {
-                if let Some(node) = args_node.named_child(i) {
+            // println!(
+            //     "got args_node: {}\n\n{}\n\n",
+            //     node.named_child_count(),
+            //     node.to_sexp()
+            // );
+
+            // for i in 0..args_node.named_child_count() {
+            //     if let Some(node) = args_node.named_child(i) {
+            //         let expr = parse_expression(node, source, id_gen)?;
+            //         args.push(expr);
+            //     }
+            // }
+
+            for node in node.children_by_field_name("args", &mut node.walk()) {
+                // println!("-- iterating child args: '{}'", node.to_sexp());
+
+                if node.kind() == "expression" {
                     let expr = parse_expression(node, source, id_gen)?;
                     args.push(expr);
                 }
