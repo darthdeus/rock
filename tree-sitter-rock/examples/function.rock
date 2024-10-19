@@ -12,5 +12,6 @@ lo:string)
 -> string {
     let f= hel + lo;
     print(f[4-5].rock);
+    return "hel";
     return "lul" + hel + "sad"+lo;
 }

@@ -51,8 +51,6 @@ module.exports = grammar({
         $.struct,
         $.enum,
         $.global,
-        // $.macro_def,
-        // $.macro_expr,
         $.impl_block,
         $.comment,
         $.statement,
@@ -142,11 +140,11 @@ module.exports = grammar({
       choice(
         $.identifier,
         $.number,
-        $.string,
         $.function_call,
         $.unary_op,
         $.binary_op,
         $.typecast,
+        $.string,
         $.field_access,
         $.method_call,
         $.index,
@@ -157,26 +155,6 @@ module.exports = grammar({
         $.block,
         $.if,
       ),
-
-    // _expression_no_if: ($) =>
-    //   choice(
-    //     $.identifier,
-    //     $.number,
-    //     $.string,
-    //     $.function_call,
-    //     $.unary_op,
-    //     $.binary_op,
-    //     $.typecast,
-    //     $.field_access,
-    //     $.method_call,
-    //     $.index,
-    //     $.paren_expr,
-    //     $.struct_literal,
-    //     $.array_literal,
-    //     $.enum_variant,
-    //     $.block,
-    //     $.if,
-    //   ),
 
     _expression_no_struct: ($) =>
       prec(
@@ -341,11 +319,12 @@ module.exports = grammar({
     unary_op: ($) => prec(PREC.unary, seq($.un_op, $.expression)),
     binary_op: ($) =>
       prec.left(
-        1,
+        PREC.additive,
         seq(
           field("left", $.expression),
           field("op", $.bin_op),
-          field("right", $._expression_no_struct),
+          field("right", $.expression),
+          // field("right", $._expression_no_struct),
         ),
       ),
 
@@ -399,30 +378,10 @@ module.exports = grammar({
 
     assignment: ($) => seq($.expression, "=", $.expression),
 
-    primitive_type: ($) =>
-      choice(
-        "num",
-        "string",
-        // "i8",
-        // "i16",
-        // "i32",
-        // "i64",
-        // "u8",
-        // "u16",
-        // "u32",
-        // "u64",
-        // "f32",
-        // "f64",
-        "bool",
-      ),
+    primitive_type: ($) => choice("num", "string", "bool"),
 
-    string: ($) =>
-      seq(
-        optional("$"),
-        '"',
-        field("str", repeat(choice(/[^"\\]/, /\\./))),
-        '"',
-      ),
+    // optional("$"),
+    string: ($) => seq('"', field("str", repeat(choice(/[^"\\]/, /\\./))), '"'),
 
     identifier: ($) => /\$?[a-zA-Z_][a-zA-Z0-9_]*/,
     // identifier: ($) => /(?!\bif\b)[a-zA-Z_][a-zA-Z0-9_]*/,

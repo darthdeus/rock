@@ -362,10 +362,6 @@
         },
         {
           "type": "SYMBOL",
-          "name": "string"
-        },
-        {
-          "type": "SYMBOL",
           "name": "function_call"
         },
         {
@@ -379,6 +375,10 @@
         {
           "type": "SYMBOL",
           "name": "typecast"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "string"
         },
         {
           "type": "SYMBOL",
@@ -1179,7 +1179,7 @@
     },
     "binary_op": {
       "type": "PREC_LEFT",
-      "value": 1,
+      "value": 9,
       "content": {
         "type": "SEQ",
         "members": [
@@ -1204,7 +1204,7 @@
             "name": "right",
             "content": {
               "type": "SYMBOL",
-              "name": "_expression_no_struct"
+              "name": "expression"
             }
           }
         ]
@@ -1539,18 +1539,6 @@
     "string": {
       "type": "SEQ",
       "members": [
-        {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "STRING",
-              "value": "$"
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
-        },
         {
           "type": "STRING",
           "value": "\""
