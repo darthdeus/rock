@@ -47,25 +47,24 @@ module.exports = grammar({
 
     _item: ($) =>
       choice(
-        $.function,
+        $.function_def,
         $.struct,
         $.enum,
         $.global,
-        $.macro_def,
-        $.macro_expr,
+        // $.macro_def,
+        // $.macro_expr,
         $.impl_block,
         $.comment,
         $.statement,
       ),
 
-    function: ($) =>
+    function_def: ($) =>
       seq(
-        field("modifier", optional($.extern_modifier)),
         "fn",
         field("name", $.identifier),
         field("parameters", $.parameter_list),
         optional(seq("->", field("return_type", $._type_expr))),
-        choice(";", $.block),
+        field("body", $.block)
       ),
 
     struct: ($) =>
@@ -91,38 +90,38 @@ module.exports = grammar({
         ";",
       ),
 
-    macro_def: ($) =>
-      seq(
-        "macro",
-        "#",
-        field("name", $.identifier),
-        field("params", $.macro_params),
-        optional(seq("->", field("return_type", $._type_expr))),
-        $.macro_body,
-      ),
+    // macro_def: ($) =>
+    //   seq(
+    //     "macro",
+    //     "#",
+    //     field("name", $.identifier),
+    //     field("params", $.macro_params),
+    //     optional(seq("->", field("return_type", $._type_expr))),
+    //     $.macro_body,
+    //   ),
 
-    macro_body: ($) =>
-      seq(
-        "{",
-        // repeat(choose($._item),
-        repeat($.macro_expr),
-        "}",
-      ),
-
-    macro_params: ($) =>
-      seq("(", commaSep(seq("$", $.identifier, ":", $.identifier)), ")"),
-
-    macro_expr: ($) => seq("#", field("name", $.identifier), $.macro_expr_args),
-
-    macro_expr_args: ($) =>
-      seq("(", commaSep(choice($.identifier, $.macro_expr)), ")"),
+    // macro_body: ($) =>
+    //   seq(
+    //     "{",
+    //     // repeat(choose($._item),
+    //     repeat($.macro_expr),
+    //     "}",
+    //   ),
+    //
+    // macro_params: ($) =>
+    //   seq("(", commaSep(seq("$", $.identifier, ":", $.identifier)), ")"),
+    //
+    // macro_expr: ($) => seq("#", field("name", $.identifier), $.macro_expr_args),
+    //
+    // macro_expr_args: ($) =>
+    //   seq("(", commaSep(choice($.identifier, $.macro_expr)), ")"),
 
     impl_block: ($) =>
       seq(
         "impl",
         field("type", $._type_expr),
         "{",
-        field("methods", repeat($.function)),
+        field("methods", repeat($.function_def)),
         "}",
       ),
 
@@ -215,8 +214,6 @@ module.exports = grammar({
         ),
       ),
 
-    extern_modifier: ($) => seq("extern", field("call_conv", '"C"')),
-
     self: ($) => "self",
     parameter_list: ($) => seq("(", commaSep(choice($.self, $.parameter)), ")"),
     parameter: ($) =>
@@ -231,7 +228,13 @@ module.exports = grammar({
           $.comment,
           $.if,
           seq(
-            choice($._expression, $.return, $.let, $.assignment, $.macro_expr),
+            choice(
+              $._expression,
+              $.return,
+              $.let,
+              $.assignment,
+              // $.macro_expr
+            ),
             ";",
           ),
         ),

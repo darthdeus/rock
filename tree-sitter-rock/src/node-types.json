@@ -400,22 +400,6 @@
     }
   },
   {
-    "type": "extern_modifier",
-    "named": true,
-    "fields": {
-      "call_conv": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "\"C\"",
-            "named": false
-          }
-        ]
-      }
-    }
-  },
-  {
     "type": "field",
     "named": true,
     "fields": {
@@ -736,70 +720,6 @@
     }
   },
   {
-    "type": "function",
-    "named": true,
-    "fields": {
-      "modifier": {
-        "multiple": false,
-        "required": false,
-        "types": [
-          {
-            "type": "extern_modifier",
-            "named": true
-          }
-        ]
-      },
-      "name": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "identifier",
-            "named": true
-          }
-        ]
-      },
-      "parameters": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "parameter_list",
-            "named": true
-          }
-        ]
-      },
-      "return_type": {
-        "multiple": false,
-        "required": false,
-        "types": [
-          {
-            "type": "generic_type",
-            "named": true
-          },
-          {
-            "type": "identifier",
-            "named": true
-          },
-          {
-            "type": "primitive_type",
-            "named": true
-          }
-        ]
-      }
-    },
-    "children": {
-      "multiple": false,
-      "required": false,
-      "types": [
-        {
-          "type": "block",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
     "type": "function_call",
     "named": true,
     "fields": {},
@@ -872,6 +792,60 @@
           "named": true
         }
       ]
+    }
+  },
+  {
+    "type": "function_def",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "block",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "parameters": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "parameter_list",
+            "named": true
+          }
+        ]
+      },
+      "return_type": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "generic_type",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "primitive_type",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {
@@ -1109,7 +1083,7 @@
         "required": false,
         "types": [
           {
-            "type": "function",
+            "type": "function_def",
             "named": true
           }
         ]
@@ -1358,135 +1332,6 @@
         },
         {
           "type": "unary_op",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
-    "type": "macro_body",
-    "named": true,
-    "fields": {},
-    "children": {
-      "multiple": true,
-      "required": false,
-      "types": [
-        {
-          "type": "macro_expr",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
-    "type": "macro_def",
-    "named": true,
-    "fields": {
-      "name": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "identifier",
-            "named": true
-          }
-        ]
-      },
-      "params": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "macro_params",
-            "named": true
-          }
-        ]
-      },
-      "return_type": {
-        "multiple": false,
-        "required": false,
-        "types": [
-          {
-            "type": "generic_type",
-            "named": true
-          },
-          {
-            "type": "identifier",
-            "named": true
-          },
-          {
-            "type": "primitive_type",
-            "named": true
-          }
-        ]
-      }
-    },
-    "children": {
-      "multiple": false,
-      "required": true,
-      "types": [
-        {
-          "type": "macro_body",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
-    "type": "macro_expr",
-    "named": true,
-    "fields": {
-      "name": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "identifier",
-            "named": true
-          }
-        ]
-      }
-    },
-    "children": {
-      "multiple": false,
-      "required": true,
-      "types": [
-        {
-          "type": "macro_expr_args",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
-    "type": "macro_expr_args",
-    "named": true,
-    "fields": {},
-    "children": {
-      "multiple": true,
-      "required": false,
-      "types": [
-        {
-          "type": "identifier",
-          "named": true
-        },
-        {
-          "type": "macro_expr",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
-    "type": "macro_params",
-    "named": true,
-    "fields": {},
-    "children": {
-      "multiple": true,
-      "required": false,
-      "types": [
-        {
-          "type": "identifier",
           "named": true
         }
       ]
@@ -1867,7 +1712,7 @@
           "named": true
         },
         {
-          "type": "function",
+          "type": "function_def",
           "named": true
         },
         {
@@ -1876,14 +1721,6 @@
         },
         {
           "type": "impl_block",
-          "named": true
-        },
-        {
-          "type": "macro_def",
-          "named": true
-        },
-        {
-          "type": "macro_expr",
           "named": true
         },
         {
@@ -1955,10 +1792,6 @@
         },
         {
           "type": "let",
-          "named": true
-        },
-        {
-          "type": "macro_expr",
           "named": true
         },
         {
@@ -2308,14 +2141,6 @@
     "named": false
   },
   {
-    "type": "\"C\"",
-    "named": false
-  },
-  {
-    "type": "#",
-    "named": false
-  },
-  {
     "type": "$",
     "named": false
   },
@@ -2440,10 +2265,6 @@
     "named": false
   },
   {
-    "type": "extern",
-    "named": false
-  },
-  {
     "type": "fn",
     "named": false
   },
@@ -2477,10 +2298,6 @@
   },
   {
     "type": "let",
-    "named": false
-  },
-  {
-    "type": "macro",
     "named": false
   },
   {
