@@ -1,17 +1,24 @@
+use ustr::Ustr;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct AstNodeId(u32);
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Ident {
+    pub id: AstNodeId,
+    pub text: Ustr,
+}
 
 #[derive(Debug, Clone)]
-enum Statement {
+pub enum Statement {
     Yes,
 }
 
 #[derive(Debug, Clone)]
-struct FunctionDef {}
+pub struct FunctionDef {}
 
 #[derive(Debug, Clone)]
-enum TopLevel {
+pub enum TopLevel {
     Statement(Statement),
     Function(FunctionDef),
 }

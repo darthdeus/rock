@@ -1,0 +1,3 @@
+[workspace]
+resolver = "2"
+members = ["rock", "rock-fmt", "tree-sitter-rock"]
