@@ -1,4 +1,5 @@
-use std::{error::Error, path::Path};
+use anyhow::Result;
+use std::path::Path;
 
 /// A span represents a range of locations in the source code that may span
 /// multiple lines. Used for error reporting. Each AST node has a span.
@@ -74,7 +75,7 @@ impl LineCol {
         let file = sources
             .files
             .iter()
-            .find(|f| &f.path == file_name)
+            .find(|f| f.path == file_name)
             .ok_or_else(|| format!("Could not locate file '{}' in sources", file_name))?;
 
         let mut global_offset = 0;
@@ -116,9 +117,7 @@ pub struct SourceFile {
 }
 
 impl SourceFile {
-    pub fn from_path(
-        path: impl AsRef<Path>,
-    ) -> Result<Self, Box<dyn Error + Send + Sync + 'static>> {
+    pub fn from_path(path: impl AsRef<Path>) -> Result<Self> {
         let path = std::fs::canonicalize(path.as_ref())?;
         Ok(SourceFile {
             path: path.to_str().unwrap().to_string(),
@@ -192,5 +191,13 @@ impl SourceFiles {
 
     pub fn add_file(&mut self, file: SourceFile) {
         self.files.push(file);
+    }
+
+    pub fn add_or_update_file(&mut self, file: SourceFile) {
+        if let Some(existing) = self.files.iter_mut().find(|f| f.path == file.path) {
+            *existing = file;
+        } else {
+            self.files.push(file);
+        }
     }
 }

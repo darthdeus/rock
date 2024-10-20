@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 use anyhow::Result;
 use source_code::{LineCol, Span};
@@ -124,4 +127,34 @@ impl TypeId {
     pub const fn to_u32(&self) -> u32 {
         self.0
     }
+}
+
+/// Walks the given directory tree, returning a list of paths for which
+/// match_pattern returns true.
+pub fn walk_dir_matching_paths<F>(
+    path: impl AsRef<Path>,
+    match_pattern: &F,
+) -> Box<dyn Iterator<Item = PathBuf>>
+where
+    F: Fn(&Path) -> bool + 'static,
+{
+    use std::fs;
+    let entries = fs::read_dir(path.as_ref()).unwrap();
+    let mut paths = Vec::new();
+
+    for entry in entries {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        if path.is_file() && !match_pattern(&path) {
+            continue;
+        } else if path.is_dir() {
+            let mut sub_paths: Vec<PathBuf> =
+                walk_dir_matching_paths(&path, match_pattern).collect();
+            paths.append(&mut sub_paths);
+        } else {
+            paths.push(path);
+        }
+    }
+
+    Box::new(paths.into_iter())
 }

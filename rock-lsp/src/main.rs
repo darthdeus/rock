@@ -4,12 +4,13 @@ use anyhow::Result;
 use lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response};
 use lsp_types::{
     request::{GotoDefinition, GotoTypeDefinitionParams},
-    GotoDefinitionResponse, InitializeParams, Location, OneOf, ServerCapabilities,
-    TextDocumentPositionParams, Uri,
+    GotoDefinitionResponse, InitializeParams, Location, OneOf, SaveOptions, ServerCapabilities,
+    TextDocumentPositionParams, TextDocumentSyncCapability, TextDocumentSyncKind,
+    TextDocumentSyncOptions, TextDocumentSyncSaveOptions, Uri,
 };
 
 use rock::*;
-use source_code::{LineCol, SourceFiles, Span};
+use source_code::{LineCol, SourceFile, SourceFiles, Span};
 
 fn main() -> Result<()> {
     eprintln!("Starting Rock LSP server ...");
@@ -19,6 +20,17 @@ fn main() -> Result<()> {
 
     let server_capabilities = serde_json::to_value(&ServerCapabilities {
         definition_provider: Some(OneOf::Left(true)),
+        text_document_sync: Some(TextDocumentSyncCapability::Options(
+            TextDocumentSyncOptions {
+                open_close: Some(true),
+                change: Some(TextDocumentSyncKind::NONE),
+                will_save: Some(false),
+                will_save_wait_until: Some(false),
+                save: Some(TextDocumentSyncSaveOptions::SaveOptions(SaveOptions {
+                    include_text: Some(false),
+                })),
+            },
+        )),
         ..Default::default()
     })?;
 
@@ -46,7 +58,7 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
     eprintln!("Starting example main loop");
 
     let rock_context = CompilerContext::new();
-    let sources = SourceFiles::new(vec![]);
+    let mut sources = SourceFiles::new(vec![]);
 
     for msg in &connection.receiver {
         eprintln!("got msg: {msg:?}");
@@ -86,7 +98,25 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
             }
 
             Message::Notification(not) => {
-                eprintln!("got notification: {not:?}");
+                if not.method == "textDocument/didSave" {
+                    eprintln!("got textDocument/didSave notification {not:?}");
+
+                    let uri = not
+                        .params
+                        .as_object()
+                        .and_then(|o| o.get("textDocument"))
+                        .and_then(|o| o.get("uri"))
+                        .and_then(|v| v.as_str())
+                        .map(|s| Uri::from_str(s).unwrap())
+                        .unwrap();
+
+                    let file_path = uri.path().as_str();
+                    sources.add_or_update_file(SourceFile::from_path(file_path)?);
+
+                    eprintln!("got uri: {uri:?}");
+                } else {
+                    eprintln!("got notification: {not:?}");
+                }
             }
         }
     }
