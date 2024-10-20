@@ -170,8 +170,8 @@ fn go_to_definition(
     let query_loc =
         text_document_position_to_linecol(sources, &params.text_document_position_params)?;
 
-    if let Some(symbol) = c.query_definition_at(query_loc) {
-        let span = c.span_of_symbol(symbol);
+    if let Some(symbol) = c.symbol_table.query_definition_at(query_loc) {
+        let span = c.symbol_table.span_of_symbol(symbol);
         let response_loc = span_to_location(&span);
         return Ok(vec![response_loc]);
     }
