@@ -87,6 +87,7 @@ pub enum SymbolInfoKind {
 #[derive(Default)]
 pub struct CompilerContext {
     pub symbols: HashMap<SymbolId, SymbolInfo>,
+    pub symbol_refs: HashMap<SymbolRefId, SymbolRef>,
 }
 
 impl CompilerContext {
@@ -95,6 +96,12 @@ impl CompilerContext {
     }
 
     pub fn query_definition_at(&self, pos: LineCol) -> Option<SymbolId> {
+        for symbol_ref in self.symbol_refs.values() {
+            if symbol_ref.span.contains_loc(&pos) {
+                return Some(symbol_ref.symbol);
+            }
+        }
+
         None
     }
 
@@ -102,6 +109,15 @@ impl CompilerContext {
         self.symbols.get(&symbol).as_ref().unwrap().span.clone()
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct SymbolRef {
+    symbol: SymbolId,
+    span: Span,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct SymbolRefId(ast::AstNodeId);
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct SymbolId(ast::AstNodeId);
