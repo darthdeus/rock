@@ -293,7 +293,7 @@ dependencies = [
  "dashmap",
  "tree-sitter",
  "tree-sitter-rock",
- "ustr",
+ "ustr 1.0.0",
 ]
 
 [[package]]
@@ -314,6 +314,7 @@ dependencies = [
  "rock",
  "serde",
  "serde_json",
+ "ustr 0.10.0",
 ]
 
 [[package]]
@@ -439,6 +440,18 @@ name = "unicode-width"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7dd6e30e90baa6f72411720665d41d89b9a3d039dc45b8faea1ddd07f617f6af"
+
+[[package]]
+name = "ustr"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b050b13c1933490b043b8238a75bc7676cb49292f49768c9350eabb284eaeb87"
+dependencies = [
+ "ahash",
+ "byteorder",
+ "lazy_static",
+ "parking_lot",
+]
 
 [[package]]
 name = "ustr"

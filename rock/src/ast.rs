@@ -6,6 +6,16 @@ use ustr::Ustr;
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct AstNodeId(u32);
 
+impl AstNodeId {
+    pub fn from_u32(id: u32) -> Self {
+        Self(id)
+    }
+
+    pub fn to_u32(&self) -> u32 {
+        self.0
+    }
+}
+
 pub struct AstNodeIdGen {
     next_id: AtomicU32,
 }
