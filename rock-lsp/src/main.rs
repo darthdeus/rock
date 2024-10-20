@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use anyhow::Result;
-use lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response};
+use lsp_server::{Connection, ExtractError, Message, Notification, Request, RequestId, Response};
 use lsp_types::{
     request::{GotoDefinition, GotoTypeDefinitionParams},
     GotoDefinitionResponse, InitializeParams, Location, OneOf, SaveOptions, ServerCapabilities,
@@ -97,29 +97,39 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
                 eprintln!("got response: {resp:?}");
             }
 
-            Message::Notification(not) => {
-                if not.method == "textDocument/didSave" {
+            Message::Notification(not) => match not.method.as_str() {
+                "textDocument/didSave" => {
                     eprintln!("got textDocument/didSave notification {not:?}");
+                    reload_sources_on_notification(&not, &mut sources)?;
+                }
 
-                    let uri = not
-                        .params
-                        .as_object()
-                        .and_then(|o| o.get("textDocument"))
-                        .and_then(|o| o.get("uri"))
-                        .and_then(|v| v.as_str())
-                        .map(|s| Uri::from_str(s).unwrap())
-                        .unwrap();
+                "textDocument/didOpen" => {
+                    eprintln!("got textDocument/didOpen notification {not:?}");
+                    reload_sources_on_notification(&not, &mut sources)?;
+                }
 
-                    let file_path = uri.path().as_str();
-                    sources.add_or_update_file(SourceFile::from_path(file_path)?);
-
-                    eprintln!("got uri: {uri:?}");
-                } else {
+                _ => {
                     eprintln!("got notification: {not:?}");
                 }
-            }
+            },
         }
     }
+
+    Ok(())
+}
+
+fn reload_sources_on_notification(not: &Notification, sources: &mut SourceFiles) -> Result<()> {
+    let uri = not
+        .params
+        .as_object()
+        .and_then(|o| o.get("textDocument"))
+        .and_then(|o| o.get("uri"))
+        .and_then(|v| v.as_str())
+        .map(|s| Uri::from_str(s).unwrap())
+        .unwrap();
+
+    let file_path = uri.path().as_str();
+    sources.add_or_update_file(SourceFile::from_path(file_path)?);
 
     Ok(())
 }
