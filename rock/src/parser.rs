@@ -1,5 +1,7 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::Result;
+use compiler_error::CompilerError;
 use debug::NodeExt;
+use source_code::LineCol;
 use tree_sitter::Node;
 
 use crate::*;
@@ -7,23 +9,28 @@ use crate::*;
 macro_rules! bail_unexpected {
     ($node:expr, $source:expr, $ty:expr) => {
         $node.report_unexpected_kind($source, $ty);
-        bail!("unexpected {} kind: '{}'", $ty, $node.kind());
+        let span = $node.to_source_span($source);
+        return Err(CompilerError::new(
+            span.start(),
+            format!("unexpected {} kind: '{}'", $ty, $node.kind()),
+        ));
+        // bail!("unexpected {} kind: '{}'", $ty, $node.kind());
     };
 }
 
 macro_rules! field_or_bail {
     ($node:expr, $field_name:expr, $source:expr) => {
         $node.child_by_field_name($field_name).ok_or_else(|| {
-            $node.report_error(
-                $source,
-                &format!("No field '{}' on node {}", $field_name, $node.to_sexp()),
-            );
-            anyhow!("No field '{}' on node", $field_name)
+            let msg = format!("No field '{}' on node {}", $field_name, $node.to_sexp());
+
+            $node.report_error($source, &msg);
+
+            return CompilerError::new($node.to_source_span($source).start(), msg);
         })?
     };
 }
 
-pub fn parse(source: &str) -> Result<Vec<TopLevel>> {
+pub fn parse(source: &str) -> Result<Vec<TopLevel>, CompilerError> {
     let mut parser = parser::Parser::new();
 
     let top_level = parser.parse(&Source {
@@ -46,9 +53,16 @@ impl Parser {
         Self {}
     }
 
-    pub fn parse(&mut self, source: &Source) -> Result<Vec<TopLevel>> {
+    pub fn parse(&mut self, source: &Source) -> Result<Vec<TopLevel>, CompilerError> {
         let mut parser = tree_sitter::Parser::new();
-        parser.set_language(&tree_sitter_rock::LANGUAGE.into())?;
+        parser
+            .set_language(&tree_sitter_rock::LANGUAGE.into())
+            .map_err(|e| {
+                CompilerError::new(
+                    LineCol::unknown(), format!("Error setting treesitter parser language: '{}'.
+                        This is a bug in the tree-sitter-rock parser, or treesitter itself.", e),
+                )
+            })?;
 
         let tree = parser.parse(&source.code, None).unwrap();
 
@@ -95,7 +109,11 @@ impl Default for Parser {
     }
 }
 
-pub fn parse_statement(node: Node, source: &Source, builder: &mut AstBuilder) -> Result<Statement> {
+pub fn parse_statement(
+    node: Node,
+    source: &Source,
+    builder: &mut AstBuilder,
+) -> Result<Statement, CompilerError> {
     // if node.text(source)?.chars().all(|x| x.is_whitespace()) {
     //     return Ok(Statement {
     //         id: builder.id_gen(),
@@ -105,14 +123,13 @@ pub fn parse_statement(node: Node, source: &Source, builder: &mut AstBuilder) ->
     // }
 
     let node = node.child(0).ok_or_else(|| {
-        node.report_error(
-            source,
-            &format!(
-                "Statement must have a child, got '{}'",
-                node.text(source).unwrap()
-            ),
+        let msg = format!(
+            "Statement must have a child, got '{}'",
+            node.text(source).unwrap()
         );
-        anyhow!("Statement must have a child")
+        node.report_error(source, &msg);
+        // anyhow!("Statement must have a child")
+        CompilerError::new(node.to_source_span(source).start(), msg)
     })?;
 
     let kind = match node.kind() {
@@ -131,18 +148,22 @@ pub fn parse_statement(node: Node, source: &Source, builder: &mut AstBuilder) ->
         }
 
         "return" => {
-            let expr_node = node
-                .child_by_field_name("expr")
-                .ok_or_else(|| anyhow!("No expr on return"))?;
+            // let expr_node = node
+            //     .child_by_field_name("expr")
+            //     .ok_or_else(|| anyhow!("No expr on return"))?;
+
+            let expr_node = field_or_bail!(node, "expr", source);
 
             let expr = parse_expression(expr_node, source, builder)?;
             StatementKind::Return(Some(expr))
         }
 
         "let" => {
-            let ident_node = node
-                .child_by_field_name("ident")
-                .ok_or_else(|| anyhow!("No ident on let"))?;
+            // let ident_node = node
+            //     .child_by_field_name("ident")
+            //     .ok_or_else(|| anyhow!("No ident on let"))?;
+
+            let ident_node = field_or_bail!(node, "ident", source);
 
             let ident = Ident {
                 id: builder.id_gen(),
@@ -151,9 +172,11 @@ pub fn parse_statement(node: Node, source: &Source, builder: &mut AstBuilder) ->
             };
 
             let ty_expr = if let Some(node) = node.child_by_field_name("type") {
-                let type_expr_node = node
-                    .child_by_field_name("type")
-                    .ok_or_else(|| anyhow!("No type on let"))?;
+                // let type_expr_node = node
+                //     .child_by_field_name("type")
+                //     .ok_or_else(|| anyhow!("No type on let"))?;
+
+                let type_expr_node = field_or_bail!(node, "type", source);
 
                 let ty_expr = TypeExpr {
                     id: builder.id_gen(),
@@ -170,9 +193,12 @@ pub fn parse_statement(node: Node, source: &Source, builder: &mut AstBuilder) ->
                 None
             };
 
-            let expr_node = node
-                .child_by_field_name("expr")
-                .ok_or_else(|| anyhow!("No expr on let"))?;
+            // let expr_node = node
+            //     .child_by_field_name("expr")
+            //     .ok_or_else(|| anyhow!("No expr on let"))?;
+
+            let expr_node = field_or_bail!(node, "expr", source);
+
             let expr = parse_expression(expr_node, source, builder)?;
 
             StatementKind::Let {
@@ -198,15 +224,18 @@ pub fn parse_function_def(
     child: Node,
     source: &Source,
     builder: &mut AstBuilder,
-) -> Result<FunctionDeclaration> {
-    let name_node = child
-        .child_by_field_name("name")
-        .ok_or_else(|| anyhow!("No name on function_def"))?;
+) -> Result<FunctionDeclaration, CompilerError> {
+    let name_node = field_or_bail!(child, "name", source);
+    // .child_by_field_name("name")
+    // .ok_or_else(|| anyhow!("No name on function_def"))?;
+    //
     let fn_name = name_node.text(source)?;
 
-    let params_node = child
-        .child_by_field_name("parameters")
-        .ok_or_else(|| anyhow!("No parameters on function_def"))?;
+    let params_node = field_or_bail!(child, "parameters", source);
+
+    // let params_node = child
+    //     .child_by_field_name("parameters")
+    //     .ok_or_else(|| anyhow!("No parameters on function_def"))?;
 
     // Extract parameters from the parameters_node
     let mut params = Vec::new();
@@ -223,9 +252,10 @@ pub fn parse_function_def(
 
             match node.kind() {
                 "typed_param" => {
-                    let type_expr_node = node
-                        .child_by_field_name("type_expr")
-                        .ok_or_else(|| anyhow!("No type on typed_param"))?;
+                    let type_expr_node = field_or_bail!(node, "type_expr", source);
+                    // let type_expr_node = node
+                    //     .child_by_field_name("type_expr")
+                    //     .ok_or_else(|| anyhow!("No type on typed_param"))?;
 
                     let type_expr = TypeExpr {
                         id: builder.id_gen(),
@@ -269,9 +299,11 @@ pub fn parse_function_def(
         None
     };
 
-    let body_node = child
-        .child_by_field_name("body")
-        .ok_or_else(|| anyhow!("No body on function_def"))?;
+    // let body_node = child
+    //     .child_by_field_name("body")
+    //     .ok_or_else(|| anyhow!("No body on function_def"))?;
+
+    let body_node = field_or_bail!(child, "body", source);
 
     let body = parse_block(body_node, source, builder)?;
 
@@ -291,7 +323,11 @@ pub fn parse_function_def(
     })
 }
 
-pub fn parse_block(node: Node, source: &Source, builder: &mut AstBuilder) -> Result<Block> {
+pub fn parse_block(
+    node: Node,
+    source: &Source,
+    builder: &mut AstBuilder,
+) -> Result<Block, CompilerError> {
     let mut statements = Vec::new();
     let return_expr = None;
 
@@ -310,7 +346,11 @@ pub fn parse_block(node: Node, source: &Source, builder: &mut AstBuilder) -> Res
     })
 }
 
-pub fn parse_expression(node: Node, source: &Source, builder: &mut AstBuilder) -> Result<Expr> {
+pub fn parse_expression(
+    node: Node,
+    source: &Source,
+    builder: &mut AstBuilder,
+) -> Result<Expr, CompilerError> {
     if node.child_count() == 0 {
         return Ok(Expr {
             id: builder.id_gen(),
@@ -366,7 +406,12 @@ pub fn parse_expression(node: Node, source: &Source, builder: &mut AstBuilder) -
 
         "number" => {
             let num_text = node.text(source)?;
-            let num = num_text.parse::<f64>()?;
+            let num = num_text.parse::<f64>().map_err(|_| {
+                let msg = format!("Could not parse number: '{}'", num_text);
+                node.report_error(source, &msg);
+                CompilerError::new(node.to_source_span(source).start(), msg)
+            })?;
+
             ExprKind::NumLiteral(num)
         }
 
@@ -402,7 +447,7 @@ pub fn parse_expression(node: Node, source: &Source, builder: &mut AstBuilder) -
                 op => {
                     let msg = format!("unknown operator: '{}'", op);
                     node.report_error(source, &msg);
-                    bail!(msg);
+                    return Err(CompilerError::new(node.to_source_span(source).start(), msg));
                 }
             };
 
@@ -447,9 +492,12 @@ pub fn parse_expression(node: Node, source: &Source, builder: &mut AstBuilder) -
         // Sometimes exprs are nested for some reason.
         // For now we don't care, this works.
         "expression" => {
-            let node = node
-                .child(0)
-                .ok_or_else(|| anyhow!("Expression must have a child"))?;
+            let node = node.child(0).ok_or_else(|| {
+                CompilerError::new(
+                    node.to_source_span(source).start(),
+                    "Expression must have a child".to_string(),
+                )
+            })?;
 
             return parse_expression(node, source, builder);
         }

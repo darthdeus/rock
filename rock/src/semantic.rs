@@ -1,3 +1,6 @@
+use compiler_error::CompilerError;
+use declaration_pass::declaration_pass;
+
 use source_code::SourceFiles;
 
 use crate::*;
@@ -9,12 +12,11 @@ pub struct SemanticResult {
     // pub global_order: GlobalInitializerOrder,
 }
 
-pub fn compile(source_files: &SourceFiles) -> Result<SemanticResult> {
+pub fn compile(source_files: &SourceFiles) -> Result<SemanticResult, CompilerError> {
     let mut top_level = vec![];
 
     for file in source_files.iter() {
         let ast = parser::parse(file.contents())?;
-
         top_level.extend(ast);
     }
 

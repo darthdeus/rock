@@ -1113,10 +1113,10 @@ impl ScopeBuilder {
     pub fn declare_function_argument(
         &mut self,
         func_decl: &ast::FunctionDeclaration,
-        arg_ident: &ast::Ident,
+        param: &ast::FunctionParam,
     ) -> SymbolId {
         let func_id = SymbolId(func_decl.name.id);
-        let arg_sym = self.declare_variable(arg_ident);
+        let arg_sym = self.declare_variable(param.ident());
         let func_info = self.table.symbols.get_mut(&func_id).unwrap();
 
         match &mut func_info.kind {

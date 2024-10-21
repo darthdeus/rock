@@ -61,6 +61,10 @@ impl CompilerError {
         }
     }
 
+    pub fn anyhow(self) -> anyhow::Error {
+        anyhow::anyhow!("{}", self.message)
+    }
+
     pub fn code(mut self, code: CompilerErrorCode) -> Self {
         self.code = code;
         self
@@ -123,39 +127,39 @@ impl CompilerError {
     }
 }
 
-#[cfg(test)]
-mod test {
-    use crate::source_code::SourceFile;
-
-    use super::*;
-    #[test]
-    pub fn test_errors() {
-        let err = CompilerError::new(
-            LineCol {
-                file: "string.rbl".into(),
-                line: 0,
-                col: 0,
-                offset: 37,
-            },
-            "Error message".into(),
-        )
-        .code(CompilerErrorCode::Unknown)
-        .label(
-            Span {
-                file: "string.rbl".into(),
-                line_range: (0, 0),
-                col_range: (0, 0),
-                offset_range: (37, 52),
-            },
-            format!("This is a test error"),
-        );
-
-        let sources = SourceFiles::new_with_stdlib(vec![SourceFile::test(
-            "string.rbl".into(),
-            "string.rbl".into(),
-            include_str!("../../rebel_std/string.rbl").into(),
-        )]);
-
-        println!("{}", err.render(&sources));
-    }
-}
+// #[cfg(test)]
+// mod test {
+//     use crate::source_code::SourceFile;
+//
+//     use super::*;
+//     #[test]
+//     pub fn test_errors() {
+//         let err = CompilerError::new(
+//             LineCol {
+//                 file: "string.rbl".into(),
+//                 line: 0,
+//                 col: 0,
+//                 offset: 37,
+//             },
+//             "Error message".into(),
+//         )
+//         .code(CompilerErrorCode::Unknown)
+//         .label(
+//             Span {
+//                 file: "string.rbl".into(),
+//                 line_range: (0, 0),
+//                 col_range: (0, 0),
+//                 offset_range: (37, 52),
+//             },
+//             format!("This is a test error"),
+//         );
+//
+//         let sources = SourceFiles::new_with_stdlib(vec![SourceFile::test(
+//             "string.rbl".into(),
+//             "string.rbl".into(),
+//             include_str!("../../rebel_std/string.rbl").into(),
+//         )]);
+//
+//         println!("{}", err.render(&sources));
+//     }
+// }

@@ -29,7 +29,7 @@ use super::*;
     [AstNodeMut] [&'a mut t];
 )]
 pub enum AstNodeBorrow<'a> {
-    // Module(borrow([ast::Module])),
+    TopLevel(borrow([ast::TopLevel])),
     Item(borrow([ast::Item])),
     FunctionDeclaration(borrow([ast::FunctionDeclaration])),
     // StructDeclaration(borrow([ast::StructDeclaration])),
@@ -78,6 +78,29 @@ impl AstWalker {
     //     cb(AstWalkEvent::OnExit(AstNode::Module(module)))?;
     //     Ok(())
     // }
+
+    pub fn walk_top_level(
+        top_level: borrow([ast::TopLevel]),
+        cb: &mut impl FnMut(AstWalkEvent) -> Result<(), CompilerError>,
+    ) -> Result<(), CompilerError> {
+        cb(AstWalkEvent::OnEnter(AstNode::TopLevel(top_level)))?;
+
+        match top_level {
+            ast::TopLevel::Statement(statement) => {
+                Self::walk_statement(statement, cb)?;
+            }
+
+            ast::TopLevel::Function(func) => {
+                Self::walk_function_declaration(func, cb)?;
+            }
+        }
+
+        // for item in borrow([top_level.items]) {
+        //     Self::walk_item(item, cb)?;
+        // }
+        cb(AstWalkEvent::OnExit(AstNode::TopLevel(top_level)))?;
+        Ok(())
+    }
 
     pub fn walk_item(
         item: borrow([ast::Item]),
@@ -259,8 +282,8 @@ impl AstWalker {
                 then_block,
                 else_block,
             } => {
-                Self::walk_expression(cond, cb);
-                Self::walk_block(then_block, cb);
+                Self::walk_expression(cond, cb)?;
+                Self::walk_block(then_block, cb)?;
 
                 if let Some(else_block) = else_block {
                     Self::walk_block(else_block, cb)?;
@@ -411,15 +434,14 @@ impl AstWalker {
             ast::ExprKind::NumLiteral(_) => {}
             ast::ExprKind::FieldAccess { field: _, base } => {
                 // Self::walk_expression(field, cb);
-                Self::walk_expression(base, cb);
-            }
-            // ast::ExprKind::TypeOf { inner } => {
-            //     Self::walk_expression(inner, cb)?;
-            // }
-            // ast::ExprKind::Macro(_) => {
-            //     // We don't emit any events for macros expressions. Users
-            //     // should match on the wrapper AST node instead.
-            // }
+                Self::walk_expression(base, cb)?;
+            } // ast::ExprKind::TypeOf { inner } => {
+              //     Self::walk_expression(inner, cb)?;
+              // }
+              // ast::ExprKind::Macro(_) => {
+              //     // We don't emit any events for macros expressions. Users
+              //     // should match on the wrapper AST node instead.
+              // }
         }
         cb(AstWalkEvent::OnExit(AstNode::Expression(expr)))?;
         Ok(())

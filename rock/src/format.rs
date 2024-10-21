@@ -1,3 +1,4 @@
+use compiler_error::CompilerError;
 use parser::parse;
 
 use crate::*;
@@ -5,7 +6,7 @@ use crate::*;
 #[derive(Default)]
 pub struct FormatStyle {}
 
-pub fn format_file(file: &str) -> Result<String> {
+pub fn format_file(file: &str) -> Result<String, CompilerError> {
     Ok(format_top_level(parse(file)?))
 }
 

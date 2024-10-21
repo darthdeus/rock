@@ -64,6 +64,15 @@ pub struct LineCol {
 }
 
 impl LineCol {
+    pub fn unknown() -> Self {
+        Self {
+            file: "<unknown>".into(),
+            line: 0,
+            col: 0,
+            offset: 0,
+        }
+    }
+
     /// Construct a LineCol from a file, line, and column number (i.e. computes
     /// the offset automatically).
     pub fn from_file_line_col(

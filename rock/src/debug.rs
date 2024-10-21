@@ -1,4 +1,5 @@
 use ariadne::{Label, Report, ReportKind};
+use compiler_error::CompilerError;
 use source_code::Span;
 use tree_sitter::Node;
 
@@ -12,7 +13,7 @@ pub trait NodeExt {
     fn to_span_nofile(&self) -> Span;
     fn to_span(&self, file: ustr::Ustr) -> Span;
     fn to_source_span(&self, source: &Source) -> Span;
-    fn text<'a>(&self, source: &'a Source) -> Result<&'a str>;
+    fn text<'a>(&self, source: &'a Source) -> Result<&'a str, CompilerError>;
 }
 
 impl<'a> NodeExt for Node<'a> {
@@ -49,8 +50,10 @@ impl<'a> NodeExt for Node<'a> {
         }
     }
 
-    fn text<'b>(&self, source: &'b Source) -> Result<&'b str> {
-        Ok(self.utf8_text(source.code.as_bytes())?)
+    fn text<'b>(&self, source: &'b Source) -> Result<&'b str, CompilerError> {
+        self.utf8_text(source.code.as_bytes()).map_err(|e| {
+            CompilerError::new(self.to_source_span(source).start(), format!("{:?}", e))
+        })
     }
 }
 

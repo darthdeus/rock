@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::sync::atomic::AtomicU32;
 
-use crate::{debug::NodeExt, parser::Source, source_code::*};
+use crate::{compiler_error::CompilerError, debug::NodeExt, parser::Source, source_code::*};
 use tree_sitter::Node;
 use ustr::Ustr;
 
@@ -139,7 +139,7 @@ impl AstBuilder {
         }
     }
 
-    pub fn ident_path(&mut self, node: Node, source: &Source) -> Result<IdentPath> {
+    pub fn ident_path(&mut self, node: Node, source: &Source) -> Result<IdentPath, CompilerError> {
         let span = node.to_source_span(source);
 
         Ok(IdentPath {
@@ -357,12 +357,38 @@ pub enum FunctionParam {
     Untyped(Ident),
 }
 
+impl FunctionParam {
+    pub fn ident(&self) -> &Ident {
+        match self {
+            FunctionParam::Typed(ident, _) => ident,
+            FunctionParam::Untyped(ident) => ident,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeExpr {
     pub id: AstNodeId,
     pub span: Span,
     pub kind: TypeExprKind,
 }
+
+impl ToString for TypeExpr {
+    fn to_string(&self) -> String {
+        match &self.kind {
+            TypeExprKind::Named(ident) => ident.text.to_string(),
+            // TypeExprKind::Primitive(primitive_type) => primitive_type.to_string(),
+            // TypeExprKind::RawPtr(type_expr) => format!("RawPtr<{}>", type_expr.to_string()),
+            // TypeExprKind::ScopedPtr(type_expr) => format!("Ptr<{}>", type_expr.to_string()),
+            // TypeExprKind::Ref(type_expr) => format!("Ref<{}>", type_expr.to_string()),
+            // TypeExprKind::Vec(type_expr) => format!("Vec<{}>", type_expr.to_string()),
+            // TypeExprKind::Option(type_expr) => format!("Option<{}>", type_expr.to_string()),
+            TypeExprKind::String => "string".to_string(),
+            TypeExprKind::Unit => "()".to_string(),
+        }
+    }
+}
+
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeExprKind {
