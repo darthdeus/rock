@@ -1,11 +1,12 @@
 use std::str::FromStr;
 
 use anyhow::Result;
-use log::{debug, info};
+use log::{debug, error, info};
 use lsp_server::{Connection, ExtractError, Message, Notification, Request, RequestId, Response};
 use lsp_types::{
-    request::{GotoDefinition, GotoTypeDefinitionParams},
-    GotoDefinitionResponse, InitializeParams, Location, OneOf, SaveOptions, ServerCapabilities,
+    request::{GotoDefinition, GotoTypeDefinitionParams, HoverRequest},
+    GotoDefinitionResponse, Hover, HoverContents, HoverProviderCapability, InitializeParams,
+    Location, MarkupContent, MarkupKind, OneOf, SaveOptions, ServerCapabilities,
     TextDocumentPositionParams, TextDocumentSyncCapability, TextDocumentSyncKind,
     TextDocumentSyncOptions, TextDocumentSyncSaveOptions, Uri,
 };
@@ -25,6 +26,7 @@ fn main() -> Result<()> {
 
     let server_capabilities = serde_json::to_value(&ServerCapabilities {
         definition_provider: Some(OneOf::Left(true)),
+        hover_provider: Some(HoverProviderCapability::Simple(true)),
         text_document_sync: Some(TextDocumentSyncCapability::Options(
             TextDocumentSyncOptions {
                 open_close: Some(true),
@@ -76,23 +78,26 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
 
                 debug!("got request: {req:?}");
 
-                match cast::<GotoDefinition>(req) {
+                let req = match cast::<GotoDefinition>(req) {
                     Ok((id, params)) => {
-                        info!("got gotoDefinition request #{id}: {params:?}");
-
-                        let result = go_to_definition(&rock_context, &sources, &params)?;
-                        let result = Some(GotoDefinitionResponse::Array(result));
-                        let result = serde_json::to_value(&result)?;
-                        let resp = Response {
-                            id,
-                            result: Some(result),
-                            error: None,
-                        };
-
-                        connection.sender.send(Message::Response(resp))?;
+                        info!("gotoDefinition request #{id}: {params:?}");
+                        let result = go_to_definition(&rock_context, &sources, &params)
+                            .map(GotoDefinitionResponse::Array);
+                        send_response(&connection, id, result)?;
                         continue;
                     }
 
+                    Err(err @ ExtractError::JsonError { .. }) => panic!("{err:?}"),
+                    Err(ExtractError::MethodMismatch(req)) => req,
+                };
+
+                let _req = match cast::<HoverRequest>(req) {
+                    Ok((id, params)) => {
+                        info!("hover request #{id}: {params:?}");
+                        let result = do_hover(&rock_context, &sources, &params);
+                        send_response(&connection, id, result)?;
+                        continue;
+                    }
                     Err(err @ ExtractError::JsonError { .. }) => panic!("{err:?}"),
                     Err(ExtractError::MethodMismatch(req)) => req,
                 };
@@ -210,6 +215,57 @@ fn go_to_definition(
     Ok(vec![])
 }
 
+fn do_hover(
+    context: &CompilerContext,
+    sources: &SourceFiles,
+    params: &lsp_types::HoverParams,
+) -> Result<Hover, anyhow::Error> {
+    // We never return an error to avoid spamming the user. Instead, we return
+    // an empty hover
+    let empty_hover = Hover {
+        contents: HoverContents::Markup(MarkupContent {
+            kind: MarkupKind::PlainText,
+            value: "".into(),
+        }),
+        range: None,
+    };
+
+    if let Some(module) = context.get_module() {
+        let Ok(query_loc) =
+            text_document_position_to_linecol(sources, &params.text_document_position_params)
+        else {
+            info!("Failed to find");
+            return Ok(empty_hover);
+        };
+
+        info!("Query location: {:?}", query_loc);
+
+        if let Some(definition) = module.semantic.symbol_table.query_definition_at(query_loc) {
+            info!("Definition: {:?}", definition);
+
+            let symbol_info = module.semantic.symbol_table.get_symbol_info(definition);
+            let ident = &symbol_info.ident_text;
+            let ty_str = module.semantic.symbol_table.type_to_string(symbol_info.ty);
+            let ty_str_html_escaped = ty_str.replace("<", "&lt;").replace(">", "&gt;");
+            let contents = format!("**{}** : {}", ident, ty_str_html_escaped);
+
+            Ok(Hover {
+                contents: HoverContents::Markup(MarkupContent {
+                    kind: MarkupKind::Markdown,
+                    value: contents,
+                }),
+                range: None,
+            })
+        } else {
+            info!("No definition found in symbol table");
+
+            Ok(empty_hover)
+        }
+    } else {
+        Err(anyhow::anyhow!("No module found"))
+    }
+}
+
 fn span_to_location(span: &Span) -> Location {
     Location {
         // uri: Url::from_file_path(&span.file.as_str()).unwrap(),
@@ -225,4 +281,39 @@ fn span_to_location(span: &Span) -> Location {
             },
         },
     }
+}
+
+fn send_response<T: serde::Serialize>(
+    connection: &Connection,
+    id: RequestId,
+    t: Result<T, anyhow::Error>,
+) -> Result<(), anyhow::Error> {
+    match t {
+        Ok(t) => {
+            let result = serde_json::to_value(&t).unwrap();
+            let resp = Response {
+                id,
+                result: Some(result),
+                error: None,
+            };
+            connection.sender.send(Message::Response(resp))?;
+        }
+
+        // When there's an actual error, we notify the client as such
+        Err(err) => {
+            error!("error: {}", err);
+
+            let resp = Response {
+                id,
+                result: None,
+                error: Some(lsp_server::ResponseError {
+                    code: lsp_server::ErrorCode::RequestFailed as i32,
+                    message: err.to_string(),
+                    data: None,
+                }),
+            };
+            connection.sender.send(Message::Response(resp))?;
+        }
+    }
+    Ok(())
 }

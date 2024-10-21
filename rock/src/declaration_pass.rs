@@ -116,11 +116,6 @@ pub fn declaration_pass(
                     ast::StatementKind::Let {
                         ident, ty_expr: _, ..
                     } => {
-                        info!("let ident: {:?}", ident);
-                        info!("let ident: {:?}", ident);
-                        info!("let ident: {:?}", ident);
-                        info!("let ident: {:?}", ident);
-                        info!("let ident: {:?}", ident);
                         scope_builder.declare_local_variable(ident);
                     }
                     ast::StatementKind::For {
