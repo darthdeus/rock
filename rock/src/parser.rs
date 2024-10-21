@@ -23,6 +23,17 @@ macro_rules! field_or_bail {
     };
 }
 
+pub fn parse(source: &str) -> Result<Vec<TopLevel>> {
+    let mut parser = parser::Parser::new();
+
+    let top_level = parser.parse(&Source {
+        code: source.to_string(),
+        file: Some("file.rock".into()),
+    })?;
+
+    Ok(top_level)
+}
+
 pub struct Source {
     pub code: String,
     pub file: Option<ustr::Ustr>,
