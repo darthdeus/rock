@@ -5,11 +5,13 @@ use ariadne::{Report, Source};
 use log::{debug, error, info};
 use lsp_server::{Connection, ExtractError, Message, Notification, Request, RequestId, Response};
 use lsp_types::{
-    request::{GotoDefinition, GotoTypeDefinitionParams, HoverRequest},
-    GotoDefinitionResponse, Hover, HoverContents, HoverProviderCapability, InitializeParams,
-    Location, MarkupContent, MarkupKind, OneOf, SaveOptions, ServerCapabilities,
-    TextDocumentPositionParams, TextDocumentSyncCapability, TextDocumentSyncKind,
-    TextDocumentSyncOptions, TextDocumentSyncSaveOptions, Uri,
+    request::{Completion, GotoDefinition, GotoTypeDefinitionParams, HoverRequest},
+    CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionOptions,
+    CompletionResponse, Documentation, GotoDefinitionResponse, Hover, HoverContents,
+    HoverProviderCapability, InitializeParams, Location, MarkupContent, MarkupKind, OneOf,
+    SaveOptions, ServerCapabilities, TextDocumentPositionParams, TextDocumentSyncCapability,
+    TextDocumentSyncKind, TextDocumentSyncOptions, TextDocumentSyncSaveOptions, Uri,
+    WorkDoneProgressOptions,
 };
 
 use rock::*;
@@ -29,6 +31,17 @@ fn main() -> Result<()> {
     let server_capabilities = serde_json::to_value(&ServerCapabilities {
         definition_provider: Some(OneOf::Left(true)),
         hover_provider: Some(HoverProviderCapability::Simple(true)),
+        completion_provider: Some(CompletionOptions {
+            resolve_provider: Some(false),
+            trigger_characters: None,
+            all_commit_characters: None,
+            work_done_progress_options: WorkDoneProgressOptions {
+                work_done_progress: Some(false),
+            },
+            completion_item: Some(lsp_types::CompletionOptionsCompletionItem {
+                label_details_support: Some(false),
+            }),
+        }),
         text_document_sync: Some(TextDocumentSyncCapability::Options(
             TextDocumentSyncOptions {
                 open_close: Some(true),
@@ -93,10 +106,21 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
                     Err(ExtractError::MethodMismatch(req)) => req,
                 };
 
-                let _req = match cast::<HoverRequest>(req) {
+                let req = match cast::<HoverRequest>(req) {
                     Ok((id, params)) => {
                         info!("hover request #{id}: {params:?}");
                         let result = do_hover(&rock_context, &sources, &params);
+                        send_response(&connection, id, result)?;
+                        continue;
+                    }
+                    Err(err @ ExtractError::JsonError { .. }) => panic!("{err:?}"),
+                    Err(ExtractError::MethodMismatch(req)) => req,
+                };
+
+                let _req = match cast::<Completion>(req) {
+                    Ok((id, params)) => {
+                        info!("completion request #{id}: {params:?}");
+                        let result = do_completion(&rock_context, &sources, &params);
                         send_response(&connection, id, result)?;
                         continue;
                     }
@@ -244,6 +268,50 @@ fn do_hover(
     } else {
         Err(anyhow::anyhow!("No module found"))
     }
+}
+
+fn do_completion(
+    context: &CompilerContext,
+    sources: &SourceFiles,
+    params: &lsp_types::CompletionParams,
+) -> Result<CompletionResponse, anyhow::Error> {
+    let mut completions = vec![];
+    info!("COMPLETION PARAMS: {:#?}", params);
+
+    if let Some(module) = context.get_module() {
+        for symbol in module.semantic.symbol_table.symbols.values() {
+            let result = CompletionItem {
+                label: "rockfun".to_string(),
+                label_details: Some(CompletionItemLabelDetails {
+                    detail: Some("GOODROCK".to_string()),
+                    description: Some("fn-rockfun-GOODROCK YES MAYBE?".to_string()),
+                }),
+                kind: Some(CompletionItemKind::VARIABLE),
+                detail: Some("Very good information about the rock".to_string()),
+                // TODO: once we have markup, use that instead.
+                documentation: Some(Documentation::String(
+                    "DETAILED DOCUMENTATION OF ROCKS".to_string(),
+                )),
+                deprecated: Some(false),
+                preselect: Some(true),
+                sort_text: None,          // Sort by label
+                filter_text: None,        // Filter by label
+                insert_text: None,        // VS Code does this wrong, so we ignore it.
+                insert_text_format: None, // When we have snippets, we may want this.
+                insert_text_mode: None,
+                text_edit: None, // For now pretend this is whatever.
+                additional_text_edits: None,
+                command: None,
+                commit_characters: None,
+                data: None,
+                tags: None,
+            };
+
+            completions.push(result);
+        }
+    }
+
+    Ok(CompletionResponse::Array(completions))
 }
 
 fn span_to_location(span: &Span) -> Location {
