@@ -1,12 +1,13 @@
 use compiler_error::CompilerError;
 use parser::parse;
+use source_code::SourceFile;
 
 use crate::*;
 
 #[derive(Default)]
 pub struct FormatStyle {}
 
-pub fn format_file(file: &str) -> Result<String, CompilerError> {
+pub fn format_file(file: &SourceFile) -> Result<String, CompilerError> {
     Ok(format_top_level(parse(file)?))
 }
 

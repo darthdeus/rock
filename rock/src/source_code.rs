@@ -1,4 +1,5 @@
 use anyhow::Result;
+use log::info;
 use std::{ops::Range, path::Path};
 
 /// A span represents a range of locations in the source code that may span
@@ -48,8 +49,15 @@ impl Span {
 
     /// Returns whether this span contains the given location.
     pub fn contains_loc(&self, query_loc: &LineCol) -> bool {
-        (query_loc.file == self.file)
-            && (query_loc.offset >= self.offset_range.0 && query_loc.offset <= self.offset_range.1)
+        let file_match = query_loc.file == self.file;
+        let loc_match =
+            query_loc.offset >= self.offset_range.0 && query_loc.offset <= self.offset_range.1;
+
+        if !file_match && loc_match {
+            info!("File mismatch: {:?} != {:?}", query_loc.file, self.file);
+        }
+
+        file_match && loc_match
     }
 
     pub fn to_label(&self, file: &str, message: String) -> ariadne::Label<(String, Range<usize>)> {

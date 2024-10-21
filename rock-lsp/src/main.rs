@@ -216,6 +216,8 @@ fn do_hover(
             return Ok(empty_hover);
         };
 
+        print_symbol_table(&module.semantic.symbol_table, sources, Some(&query_loc));
+
         info!("Query location: {:?}", query_loc);
 
         if let Some(definition) = module.semantic.symbol_table.query_definition_at(query_loc) {
@@ -247,7 +249,7 @@ fn do_hover(
 fn span_to_location(span: &Span) -> Location {
     Location {
         // uri: Url::from_file_path(&span.file.as_str()).unwrap(),
-        uri: Uri::from_str(span.file.as_str()).unwrap(),
+        uri: Uri::from_str(&format!("file://{}", span.file.as_str())).unwrap(),
         range: lsp_types::Range {
             start: lsp_types::Position {
                 line: span.start().line as u32,
@@ -290,6 +292,7 @@ fn reload_sources_on_notification(
             .semantic
             .symbol_table,
         sources,
+        None,
     );
 
     Ok(())
@@ -330,12 +333,23 @@ fn send_response<T: serde::Serialize>(
     Ok(())
 }
 
-fn print_symbol_table(table: &SymbolTable, sources: &SourceFiles) {
+fn print_symbol_table(table: &SymbolTable, sources: &SourceFiles, query_loc: Option<&LineCol>) {
     let mut report = Report::build(ariadne::ReportKind::Advice, "gud.rock", 0);
 
     let file = &sources.files[0];
 
     let mut seen_syms = HashSet::new();
+
+    if let Some(query_loc) = query_loc {
+        let span = Span {
+            file: query_loc.file,
+            line_range: (query_loc.line, query_loc.line + 1),
+            col_range: (query_loc.col, query_loc.col + 1),
+            offset_range: (query_loc.offset, query_loc.offset + 1),
+        };
+
+        report.add_label(span.to_label(file.path(), ">>> Query location <<<".to_string()));
+    }
 
     for (sym_id, sym) in table.symbols.iter() {
         seen_syms.insert(sym_id.to_u32());
@@ -353,11 +367,7 @@ fn print_symbol_table(table: &SymbolTable, sources: &SourceFiles) {
 
         report.add_label(sym_ref.span.to_label(
             file.path(),
-            format!(
-                "ref[#{}] -> #{}",
-                ref_id.to_u32(),
-                sym_ref.symbol.to_u32()
-            ),
+            format!("ref[#{}] -> #{}", ref_id.to_u32(), sym_ref.symbol.to_u32()),
         ));
     }
 

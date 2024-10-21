@@ -1,7 +1,7 @@
 use anyhow::Result;
 use compiler_error::CompilerError;
 use debug::NodeExt;
-use source_code::LineCol;
+use source_code::{LineCol, SourceFile};
 use tree_sitter::Node;
 
 use crate::*;
@@ -30,12 +30,12 @@ macro_rules! field_or_bail {
     };
 }
 
-pub fn parse(source: &str) -> Result<Vec<TopLevel>, CompilerError> {
+pub fn parse(source: &SourceFile) -> Result<Vec<TopLevel>, CompilerError> {
     let mut parser = parser::Parser::new();
 
     let top_level = parser.parse(&Source {
-        code: source.to_string(),
-        file: Some("file.rock".into()),
+        code: source.contents().to_string(),
+        file: Some(source.path().into()),
     })?;
 
     Ok(top_level)
@@ -59,8 +59,12 @@ impl Parser {
             .set_language(&tree_sitter_rock::LANGUAGE.into())
             .map_err(|e| {
                 CompilerError::new(
-                    LineCol::unknown(), format!("Error setting treesitter parser language: '{}'.
-                        This is a bug in the tree-sitter-rock parser, or treesitter itself.", e),
+                    LineCol::unknown(),
+                    format!(
+                        "Error setting treesitter parser language: '{}'.
+                        This is a bug in the tree-sitter-rock parser, or treesitter itself.",
+                        e
+                    ),
                 )
             })?;
 

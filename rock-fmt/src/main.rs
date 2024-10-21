@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rock::format::*;
+use rock::{format::*, source_code::SourceFile};
 use std::env;
 
 fn main() -> Result<()> {
@@ -10,9 +10,9 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    let input_file = std::fs::read_to_string(&args[1])?;
+    let input_file = SourceFile::from_path(&args[1])?;
 
-    println!("==== INPUT ====\n{}", input_file);
+    println!("==== INPUT ====\n{}", input_file.contents());
 
     let top_level = rock::parser::parse(&input_file).map_err(|e| e.anyhow())?;
 
