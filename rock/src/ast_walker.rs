@@ -165,6 +165,8 @@ impl AstWalker {
         //     }
         // }
 
+        Self::walk_block(borrow([function.body]), cb)?;
+
         cb(AstWalkEvent::OnExit(AstNode::FunctionDeclaration(function)))?;
         Ok(())
     }
@@ -300,12 +302,10 @@ impl AstWalker {
             ast::StatementKind::While { cond, body } => {
                 Self::walk_expression(cond, cb)?;
                 Self::walk_block(body, cb)?;
-            }
-
-            // ast::StatementKind::Macro(_) => {
-            //     // We don't emit any events for macros expressions. Users
-            //     // should match on the wrapper AST node instead.
-            // }
+            } // ast::StatementKind::Macro(_) => {
+              //     // We don't emit any events for macros expressions. Users
+              //     // should match on the wrapper AST node instead.
+              // }
         }
         cb(AstWalkEvent::OnExit(AstNode::Statement(statement)))?;
         Ok(())

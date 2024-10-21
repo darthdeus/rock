@@ -116,14 +116,19 @@ pub fn declaration_pass(
                     ast::StatementKind::Let {
                         ident, ty_expr: _, ..
                     } => {
-                        scope_builder.declare_variable(ident);
+                        info!("let ident: {:?}", ident);
+                        info!("let ident: {:?}", ident);
+                        info!("let ident: {:?}", ident);
+                        info!("let ident: {:?}", ident);
+                        info!("let ident: {:?}", ident);
+                        scope_builder.declare_local_variable(ident);
                     }
                     ast::StatementKind::For {
                         var,
                         iterable: _,
                         body: _,
                     } => {
-                        scope_builder.declare_variable(var);
+                        scope_builder.declare_local_variable(var);
                     }
                     ast::StatementKind::While { .. } => (),
                     ast::StatementKind::Expression(_) => (),

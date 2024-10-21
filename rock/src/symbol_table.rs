@@ -1,6 +1,8 @@
 use std::collections::{hash_map::Entry, HashMap};
 use std::fmt::Write;
 
+use log::info;
+
 use crate::{
     ast,
     source_code::{LineCol, Span},
@@ -992,6 +994,12 @@ impl SymbolTable {
     // }
 }
 
+impl Default for SymbolTable {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ScopeBuilder {
     pub fn new() -> Self {
         let table = SymbolTable::new();
@@ -1050,7 +1058,11 @@ impl ScopeBuilder {
             .insert(name.to_string(), symbol);
     }
 
-    pub fn declare_variable(&mut self, ident: &ast::Ident) -> SymbolId {
+    pub fn declare_local_variable(&mut self, ident: &ast::Ident) -> SymbolId {
+        info!("DECLARE LOCAL VAR!!! {}", ident.text);
+        info!("DECLARE LOCAL VAR!!! {}", ident.text);
+        info!("DECLARE LOCAL VAR!!! {}", ident.text);
+
         let var_id = SymbolId(ident.id);
         let var_info = SymbolInfo {
             // Local variables don't have symbol name, because shadowing and
@@ -1116,7 +1128,7 @@ impl ScopeBuilder {
         param: &ast::FunctionParam,
     ) -> SymbolId {
         let func_id = SymbolId(func_decl.name.id);
-        let arg_sym = self.declare_variable(param.ident());
+        let arg_sym = self.declare_local_variable(param.ident());
         let func_info = self.table.symbols.get_mut(&func_id).unwrap();
 
         match &mut func_info.kind {

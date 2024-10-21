@@ -183,10 +183,26 @@ fn go_to_definition(
     let query_loc =
         text_document_position_to_linecol(sources, &params.text_document_position_params)?;
 
+    info!("Query location: {:?}", query_loc);
+
     if let Some(module) = c.get_module() {
+        info!("... module");
+
         if let Some(symbol) = module.semantic.symbol_table.query_definition_at(query_loc) {
+            info!("... symbol: {:?}", symbol);
+
             let span = module.semantic.symbol_table.span_of_symbol(symbol);
             let response_loc = span_to_location(&span);
+
+            info!(
+                "Found definition of {} at {:?}",
+                module
+                    .semantic
+                    .symbol_table
+                    .get_symbol_info(symbol)
+                    .ident_text,
+                response_loc
+            );
             return Ok(vec![response_loc]);
         }
     }
