@@ -3,7 +3,7 @@ use std::path::Path;
 
 /// A span represents a range of locations in the source code that may span
 /// multiple lines. Used for error reporting. Each AST node has a span.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Span {
     pub file: ustr::Ustr,
     pub line_range: (usize, usize),
@@ -11,12 +11,12 @@ pub struct Span {
     pub offset_range: (usize, usize),
 }
 
-impl std::fmt::Debug for Span {
-    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Ok(())
-        // f.debug_struct("Span").field("file", &self.file).field("line_range", &self.line_range).field("col_range", &self.col_range).field("offset_range", &self.offset_range).finish()
-    }
-}
+// impl std::fmt::Debug for Span {
+//     fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         Ok(())
+//         // f.debug_struct("Span").field("file", &self.file).field("line_range", &self.line_range).field("col_range", &self.col_range).field("offset_range", &self.offset_range).finish()
+//     }
+// }
 
 impl Span {
     pub fn unknown() -> Self {

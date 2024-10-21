@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use anyhow::Result;
-use log::info;
+use log::{debug, info};
 use lsp_server::{Connection, ExtractError, Message, Notification, Request, RequestId, Response};
 use lsp_types::{
     request::{GotoDefinition, GotoTypeDefinitionParams},
@@ -66,7 +66,7 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
     let mut sources = SourceFiles::new(vec![]);
 
     for msg in &connection.receiver {
-        info!("got msg: {msg:?}");
+        debug!("got msg: {msg:?}");
 
         match msg {
             Message::Request(req) => {
@@ -74,7 +74,7 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
                     return Ok(());
                 }
 
-                info!("got request: {req:?}");
+                debug!("got request: {req:?}");
 
                 match cast::<GotoDefinition>(req) {
                     Ok((id, params)) => {

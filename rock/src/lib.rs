@@ -45,6 +45,10 @@ impl CompilerContext {
     pub fn compile_sources(&mut self, sources: &SourceFiles) -> Result<(), CompilerError> {
         let result = semantic::compile(sources)?;
 
+        for symbol in result.symbol_table.symbols.values() {
+            info!("Symbol: {:?}", symbol);
+        }
+
         self.compiled_module = Some(CompiledModule { semantic: result });
 
         info!("Compilation OK");
