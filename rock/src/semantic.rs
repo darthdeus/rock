@@ -1,4 +1,3 @@
-use compiler_error::CompilerError;
 use source_code::SourceFiles;
 
 use crate::*;
@@ -19,7 +18,11 @@ pub fn compile(source_files: &SourceFiles) -> Result<SemanticResult> {
         top_level.extend(ast);
     }
 
-    let mut symbol_table = SymbolTable::default();
+    // Fill scopes, register all declarations, and variable usages.
+    let mut scope_builder = ScopeBuilder::new();
+    declaration_pass(&top_level, &mut scope_builder)?;
 
-    Ok(SemanticResult { symbol_table })
+    Ok(SemanticResult {
+        symbol_table: scope_builder.table,
+    })
 }

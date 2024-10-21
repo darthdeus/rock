@@ -21,6 +21,16 @@ pub trait Format {
     fn format(&self, style: &FormatStyle) -> String;
 }
 
+impl Format for IdentPath {
+    fn format(&self, style: &FormatStyle) -> String {
+        self.idents
+            .iter()
+            .map(|x| x.format(style))
+            .collect::<Vec<_>>()
+            .join("::")
+    }
+}
+
 impl Format for TopLevel {
     fn format(&self, style: &FormatStyle) -> String {
         match self {
@@ -123,14 +133,30 @@ impl Format for Expr {
                 format!("({})", expr.format(s))
             }
             ExprKind::Block(block) => block.format(s),
+            ExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                let else_branch = match else_branch {
+                    Some(b) => format!("else {{\n{}\n}}", b.format(s)),
+                    None => "".to_string(),
+                };
+                format!(
+                    "if {} {{\n{}\n}} {}",
+                    condition.format(s),
+                    then_branch.format(s),
+                    else_branch
+                )
+            }
         }
     }
 }
 
-impl Format for FunctionDef {
+impl Format for FunctionDeclaration {
     fn format(&self, style: &FormatStyle) -> String {
         let param_list = self
-            .params
+            .args
             .iter()
             .map(|x| x.format(style))
             .collect::<Vec<_>>()
@@ -173,6 +199,8 @@ impl Format for TypeExpr {
     fn format(&self, style: &FormatStyle) -> String {
         match &self.kind {
             TypeExprKind::Named(ident) => ident.format(style),
+            TypeExprKind::Unit => "()".to_string(),
+            TypeExprKind::String => "string".to_string(),
         }
     }
 }

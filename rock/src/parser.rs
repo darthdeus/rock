@@ -39,15 +39,11 @@ pub struct Source {
     pub file: Option<ustr::Ustr>,
 }
 
-pub struct Parser {
-    id_gen: AstNodeIdGen,
-}
+pub struct Parser {}
 
 impl Parser {
     pub fn new() -> Self {
-        Self {
-            id_gen: AstNodeIdGen::new(),
-        }
+        Self {}
     }
 
     pub fn parse(&mut self, source: &Source) -> Result<Vec<TopLevel>> {
@@ -61,10 +57,12 @@ impl Parser {
 
         let mut top_level = Vec::<TopLevel>::new();
 
+        let mut builder = AstBuilder::new();
+
         for child in root.children(&mut cursor) {
             match child.kind() {
                 "statement" => {
-                    let statement = parse_statement(child, source, &mut self.id_gen)?;
+                    let statement = parse_statement(child, source, &mut builder)?;
 
                     if let StatementKind::Nothing = statement.kind {
                         continue;
@@ -77,7 +75,7 @@ impl Parser {
                     top_level.push(TopLevel::Function(parse_function_def(
                         child,
                         source,
-                        &mut self.id_gen,
+                        &mut builder,
                     )?));
                 }
 
@@ -97,14 +95,10 @@ impl Default for Parser {
     }
 }
 
-pub fn parse_statement(
-    node: Node,
-    source: &Source,
-    id_gen: &mut AstNodeIdGen,
-) -> Result<Statement> {
+pub fn parse_statement(node: Node, source: &Source, builder: &mut AstBuilder) -> Result<Statement> {
     // if node.text(source)?.chars().all(|x| x.is_whitespace()) {
     //     return Ok(Statement {
-    //         id: id_gen.id_gen(),
+    //         id: builder.id_gen(),
     //         span: node.to_source_span(source),
     //         kind: StatementKind::Nothing,
     //     });
@@ -123,7 +117,7 @@ pub fn parse_statement(
 
     let kind = match node.kind() {
         "comment" => StatementKind::Comment(Comment {
-            id: id_gen.id_gen(),
+            id: builder.id_gen(),
             span: node.to_source_span(source),
             text: node.text(source)?.to_string(),
         }),
@@ -132,7 +126,7 @@ pub fn parse_statement(
         "newline" => StatementKind::Nothing,
 
         "expression" => {
-            let expr = parse_expression(node, source, id_gen)?;
+            let expr = parse_expression(node, source, builder)?;
             StatementKind::Expression(expr)
         }
 
@@ -141,7 +135,7 @@ pub fn parse_statement(
                 .child_by_field_name("expr")
                 .ok_or_else(|| anyhow!("No expr on return"))?;
 
-            let expr = parse_expression(expr_node, source, id_gen)?;
+            let expr = parse_expression(expr_node, source, builder)?;
             StatementKind::Return(Some(expr))
         }
 
@@ -151,7 +145,7 @@ pub fn parse_statement(
                 .ok_or_else(|| anyhow!("No ident on let"))?;
 
             let ident = Ident {
-                id: id_gen.id_gen(),
+                id: builder.id_gen(),
                 span: ident_node.to_source_span(source),
                 text: ident_node.text(source)?.into(),
             };
@@ -162,10 +156,10 @@ pub fn parse_statement(
                     .ok_or_else(|| anyhow!("No type on let"))?;
 
                 let ty_expr = TypeExpr {
-                    id: id_gen.id_gen(),
+                    id: builder.id_gen(),
                     span: type_expr_node.to_source_span(source),
                     kind: TypeExprKind::Named(Ident {
-                        id: id_gen.id_gen(),
+                        id: builder.id_gen(),
                         span: type_expr_node.to_source_span(source),
                         text: type_expr_node.text(source)?.into(),
                     }),
@@ -179,7 +173,7 @@ pub fn parse_statement(
             let expr_node = node
                 .child_by_field_name("expr")
                 .ok_or_else(|| anyhow!("No expr on let"))?;
-            let expr = parse_expression(expr_node, source, id_gen)?;
+            let expr = parse_expression(expr_node, source, builder)?;
 
             StatementKind::Let {
                 ident,
@@ -194,7 +188,7 @@ pub fn parse_statement(
     };
 
     Ok(Statement {
-        id: id_gen.id_gen(),
+        id: builder.id_gen(),
         span: node.to_source_span(source),
         kind,
     })
@@ -203,8 +197,8 @@ pub fn parse_statement(
 pub fn parse_function_def(
     child: Node,
     source: &Source,
-    id_gen: &mut AstNodeIdGen,
-) -> Result<FunctionDef> {
+    builder: &mut AstBuilder,
+) -> Result<FunctionDeclaration> {
     let name_node = child
         .child_by_field_name("name")
         .ok_or_else(|| anyhow!("No name on function_def"))?;
@@ -222,7 +216,7 @@ pub fn parse_function_def(
             let param_text = node.text(source)?;
 
             let ident = Ident {
-                id: id_gen.id_gen(),
+                id: builder.id_gen(),
                 span: node.to_source_span(source),
                 text: param_text.into(),
             };
@@ -234,10 +228,10 @@ pub fn parse_function_def(
                         .ok_or_else(|| anyhow!("No type on typed_param"))?;
 
                     let type_expr = TypeExpr {
-                        id: id_gen.id_gen(),
+                        id: builder.id_gen(),
                         span: type_expr_node.to_source_span(source),
                         kind: TypeExprKind::Named(Ident {
-                            id: id_gen.id_gen(),
+                            id: builder.id_gen(),
                             span: type_expr_node.to_source_span(source),
                             text: type_expr_node.text(source)?.into(),
                         }),
@@ -263,10 +257,10 @@ pub fn parse_function_def(
         let text = node.text(source)?;
 
         Some(TypeExpr {
-            id: id_gen.id_gen(),
+            id: builder.id_gen(),
             span: node.to_source_span(source),
             kind: TypeExprKind::Named(Ident {
-                id: id_gen.id_gen(),
+                id: builder.id_gen(),
                 span: node.to_source_span(source),
                 text: text.into(),
             }),
@@ -279,70 +273,62 @@ pub fn parse_function_def(
         .child_by_field_name("body")
         .ok_or_else(|| anyhow!("No body on function_def"))?;
 
-    let body = parse_block(body_node, source, id_gen)?;
+    let body = parse_block(body_node, source, builder)?;
 
-    Ok(FunctionDef {
-        id: id_gen.id_gen(),
+    Ok(FunctionDeclaration {
+        id: builder.id_gen(),
         span: child.to_source_span(source),
 
         name: Ident {
-            id: id_gen.id_gen(),
+            id: builder.id_gen(),
             span: child.to_source_span(source),
             text: fn_name.into(),
         },
-        params,
+        args: params,
         return_type,
         body,
         kind: FunctionDefKind::Standalone,
     })
 }
 
-pub fn parse_block(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) -> Result<Block> {
+pub fn parse_block(node: Node, source: &Source, builder: &mut AstBuilder) -> Result<Block> {
     let mut statements = Vec::new();
     let return_expr = None;
 
     for i in 0..node.named_child_count() {
         if let Some(node) = node.named_child(i) {
-            let statement = parse_statement(node, source, id_gen)?;
+            let statement = parse_statement(node, source, builder)?;
             statements.push(statement);
         }
     }
 
     Ok(Block {
-        id: id_gen.id_gen(),
+        id: builder.id_gen(),
         span: node.to_source_span(source),
         statements,
         return_expr,
     })
 }
 
-pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) -> Result<Expr> {
+pub fn parse_expression(node: Node, source: &Source, builder: &mut AstBuilder) -> Result<Expr> {
     if node.child_count() == 0 {
         return Ok(Expr {
-            id: id_gen.id_gen(),
+            id: builder.id_gen(),
             span: node.to_source_span(source),
-            kind: ExprKind::Path(Ident {
-                id: id_gen.id_gen(),
-                span: node.to_source_span(source),
-                text: node.text(source)?.into(),
-            }),
+            kind: ExprKind::Path(builder.ident_path(node, source)?),
         });
     }
 
     // println!("parsing expression: '{}'", node.to_sexp());
 
     let kind = match node.kind() {
-        "identifier" => ExprKind::Path(Ident {
-            id: id_gen.id_gen(),
-            span: node.to_source_span(source),
-            text: node.text(source)?.into(),
-        }),
+        "identifier" => ExprKind::Path(builder.ident_path(node, source)?),
 
         "function_call" => {
             let ident_node = field_or_bail!(node, "ident", source);
 
             let ident = Ident {
-                id: id_gen.id_gen(),
+                id: builder.id_gen(),
                 span: node.to_source_span(source),
                 text: ident_node.text(source)?.into(),
             };
@@ -361,7 +347,7 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
 
             // for i in 0..args_node.named_child_count() {
             //     if let Some(node) = args_node.named_child(i) {
-            //         let expr = parse_expression(node, source, id_gen)?;
+            //         let expr = parse_expression(node, source, builder)?;
             //         args.push(expr);
             //     }
             // }
@@ -370,7 +356,7 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
                 // println!("-- iterating child args: '{}'", node.to_sexp());
 
                 if node.kind() == "expression" {
-                    let expr = parse_expression(node, source, id_gen)?;
+                    let expr = parse_expression(node, source, builder)?;
                     args.push(expr);
                 }
             }
@@ -386,10 +372,10 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
 
         "binary_op" => {
             let left_node = field_or_bail!(node, "left", source);
-            let left = parse_expression(left_node, source, id_gen)?;
+            let left = parse_expression(left_node, source, builder)?;
 
             let right_node = field_or_bail!(node, "right", source);
-            let right = parse_expression(right_node, source, id_gen)?;
+            let right = parse_expression(right_node, source, builder)?;
 
             let op_node = field_or_bail!(node, "op", source);
 
@@ -429,13 +415,13 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
 
         "field_access" => {
             let base_node = field_or_bail!(node, "base", source);
-            let base = parse_expression(base_node, source, id_gen)?;
+            let base = parse_expression(base_node, source, builder)?;
             let field_node = field_or_bail!(node, "field", source);
             let field = field_node.text(source)?.into();
 
             ExprKind::FieldAccess {
                 field: Ident {
-                    id: id_gen.id_gen(),
+                    id: builder.id_gen(),
                     span: field_node.to_source_span(source),
                     text: field,
                 },
@@ -445,10 +431,10 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
 
         "index" => {
             let base_node = field_or_bail!(node, "base", source);
-            let base = parse_expression(base_node, source, id_gen)?;
+            let base = parse_expression(base_node, source, builder)?;
 
             let index_node = field_or_bail!(node, "index", source);
-            let index = parse_expression(index_node, source, id_gen)?;
+            let index = parse_expression(index_node, source, builder)?;
 
             ExprKind::Index {
                 base: Box::new(base),
@@ -465,7 +451,7 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
                 .child(0)
                 .ok_or_else(|| anyhow!("Expression must have a child"))?;
 
-            return parse_expression(node, source, id_gen);
+            return parse_expression(node, source, builder);
         }
 
         _ => {
@@ -475,7 +461,7 @@ pub fn parse_expression(node: Node, source: &Source, id_gen: &mut AstNodeIdGen) 
     };
 
     Ok(Expr {
-        id: id_gen.id_gen(),
+        id: builder.id_gen(),
         span: node.to_source_span(source),
         kind,
     })

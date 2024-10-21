@@ -64,7 +64,7 @@ impl AstKind for Statement {
     }
 }
 
-impl AstKind for FunctionDef {
+impl AstKind for FunctionDeclaration {
     fn kind(&self) -> &'static str {
         "FunctionDef"
     }

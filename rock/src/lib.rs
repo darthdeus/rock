@@ -6,23 +6,26 @@ use ast::*;
 use symbol_table::*;
 
 pub mod ast;
+pub mod ast_walker;
 pub mod compiler_error;
 pub mod debug;
+pub mod declaration_pass;
 pub mod format;
 pub mod parser;
 pub mod semantic;
 pub mod source_code;
 pub mod symbol_table;
+pub mod types;
 
-
-#[derive(Default)]
 pub struct CompilerContext {
     pub symbol_table: SymbolTable,
 }
 
 impl CompilerContext {
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            symbol_table: SymbolTable::new(),
+        }
     }
 }
 
