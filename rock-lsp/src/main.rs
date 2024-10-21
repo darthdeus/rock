@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use anyhow::Result;
+use log::info;
 use lsp_server::{Connection, ExtractError, Message, Notification, Request, RequestId, Response};
 use lsp_types::{
     request::{GotoDefinition, GotoTypeDefinitionParams},
@@ -13,8 +14,12 @@ use rock::*;
 use source_code::{LineCol, SourceFile, SourceFiles, Span};
 
 fn main() -> Result<()> {
-    eprintln!("Starting Rock LSP server ...");
-    // panic!("sad");
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Info)
+        .format_timestamp(None)
+        .init();
+
+    info!("Starting Rock LSP server ...");
 
     let (connection, io_threads) = Connection::stdio();
 
@@ -48,20 +53,20 @@ fn main() -> Result<()> {
     main_loop(connection, initialization_params)?;
 
     io_threads.join()?;
-    eprintln!("Shutting down Rock LSP  server");
+    info!("Shutting down Rock LSP server");
 
     Ok(())
 }
 
 fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
     let _params: InitializeParams = serde_json::from_value(params)?;
-    eprintln!("Starting example main loop");
+    info!("Starting example main loop");
 
     let mut rock_context = CompilerContext::new();
     let mut sources = SourceFiles::new(vec![]);
 
     for msg in &connection.receiver {
-        eprintln!("got msg: {msg:?}");
+        info!("got msg: {msg:?}");
 
         match msg {
             Message::Request(req) => {
@@ -69,11 +74,11 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
                     return Ok(());
                 }
 
-                eprintln!("got request: {req:?}");
+                info!("got request: {req:?}");
 
                 match cast::<GotoDefinition>(req) {
                     Ok((id, params)) => {
-                        eprintln!("got gotoDefinition request #{id}: {params:?}");
+                        info!("got gotoDefinition request #{id}: {params:?}");
 
                         let result = go_to_definition(&rock_context, &sources, &params)?;
                         let result = Some(GotoDefinitionResponse::Array(result));
@@ -94,22 +99,22 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
             }
 
             Message::Response(resp) => {
-                eprintln!("got response: {resp:?}");
+                info!("got response: {resp:?}");
             }
 
             Message::Notification(not) => match not.method.as_str() {
                 "textDocument/didSave" => {
-                    eprintln!("got textDocument/didSave notification {not:?}");
+                    info!("got textDocument/didSave notification {not:?}");
                     reload_sources_on_notification(&not, &mut rock_context, &mut sources)?;
                 }
 
                 "textDocument/didOpen" => {
-                    eprintln!("got textDocument/didOpen notification {not:?}");
+                    info!("got textDocument/didOpen notification {not:?}");
                     reload_sources_on_notification(&not, &mut rock_context, &mut sources)?;
                 }
 
                 _ => {
-                    eprintln!("got notification: {not:?}");
+                    info!("got notification: {not:?}");
                 }
             },
         }

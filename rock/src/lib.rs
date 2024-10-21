@@ -4,6 +4,7 @@ use anyhow::Result;
 
 use ast::*;
 use compiler_error::CompilerError;
+use log::info;
 use semantic::SemanticResult;
 use source_code::SourceFiles;
 use symbol_table::*;
@@ -46,7 +47,7 @@ impl CompilerContext {
 
         self.compiled_module = Some(CompiledModule { semantic: result });
 
-        eprintln!("Compilation OK");
+        info!("Compilation OK");
 
         Ok(())
     }
