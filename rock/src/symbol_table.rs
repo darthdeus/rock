@@ -303,12 +303,22 @@ pub struct PrimitiveTypeInfo {
 
 #[derive(Debug, Clone)]
 pub struct SymbolRef {
-    symbol: SymbolId,
-    span: Span,
+    pub symbol: SymbolId,
+    pub span: Span,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct SymbolRefId(ast::AstNodeId);
+
+impl SymbolRefId {
+    pub fn from_u32(id: u32) -> Self {
+        Self(ast::AstNodeId::from_u32(id))
+    }
+
+    pub fn to_u32(&self) -> u32 {
+        self.0.to_u32()
+    }
+}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct SymbolId(ast::AstNodeId);

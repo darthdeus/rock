@@ -1,5 +1,5 @@
 use anyhow::Result;
-use std::path::Path;
+use std::{ops::Range, path::Path};
 
 /// A span represents a range of locations in the source code that may span
 /// multiple lines. Used for error reporting. Each AST node has a span.
@@ -50,6 +50,11 @@ impl Span {
     pub fn contains_loc(&self, query_loc: &LineCol) -> bool {
         (query_loc.file == self.file)
             && (query_loc.offset >= self.offset_range.0 && query_loc.offset <= self.offset_range.1)
+    }
+
+    pub fn to_label(&self, file: &str, message: String) -> ariadne::Label<(String, Range<usize>)> {
+        ariadne::Label::new((file.to_string(), self.start().offset..self.end().offset))
+            .with_message(message)
     }
 }
 

@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{collections::HashSet, str::FromStr};
 
 use anyhow::Result;
 use ariadne::{Report, Source};
@@ -335,18 +335,34 @@ fn print_symbol_table(table: &SymbolTable, sources: &SourceFiles) {
 
     let file = &sources.files[0];
 
-    for (id, info) in table.symbols.iter() {
-        report.add_label(
-            ariadne::Label::new((
-                file.path(),
-                info.span.start().offset..info.span.end().offset,
-            ))
-            .with_message(format!("symbol[#{}]: '{}'", id.to_u32(), info.ident_text)),
-        );
+    let mut seen_syms = HashSet::new();
+
+    for (sym_id, sym) in table.symbols.iter() {
+        seen_syms.insert(sym_id.to_u32());
+
+        report.add_label(sym.span.to_label(
+            file.path(),
+            format!("symbol[#{}]: '{}'", sym_id.to_u32(), sym.ident_text),
+        ));
+    }
+
+    for (ref_id, sym_ref) in table.symbol_refs.iter() {
+        if seen_syms.contains(&ref_id.to_u32()) {
+            continue;
+        }
+
+        report.add_label(sym_ref.span.to_label(
+            file.path(),
+            format!(
+                "ref[#{}] -> #{}",
+                ref_id.to_u32(),
+                sym_ref.symbol.to_u32()
+            ),
+        ));
     }
 
     report
         .finish()
-        .eprint((file.path(), Source::from(file.contents())))
+        .eprint((file.path().to_string(), Source::from(file.contents())))
         .unwrap();
 }
