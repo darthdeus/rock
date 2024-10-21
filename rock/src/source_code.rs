@@ -159,7 +159,7 @@ impl SourceFile {
 
 #[derive(Debug, Clone)]
 pub struct SourceFiles {
-    files: Vec<SourceFile>,
+    pub files: Vec<SourceFile>,
 }
 
 impl SourceFiles {

@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use anyhow::Result;
+use ariadne::{Report, Source};
 use log::{debug, error, info};
 use lsp_server::{Connection, ExtractError, Message, Notification, Request, RequestId, Response};
 use lsp_types::{
@@ -13,6 +14,7 @@ use lsp_types::{
 
 use rock::*;
 use source_code::{LineCol, SourceFile, SourceFiles, Span};
+use symbol_table::SymbolTable;
 
 fn main() -> Result<()> {
     env_logger::builder()
@@ -124,30 +126,6 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
             },
         }
     }
-
-    Ok(())
-}
-
-fn reload_sources_on_notification(
-    not: &Notification,
-    context: &mut CompilerContext,
-    sources: &mut SourceFiles,
-) -> Result<()> {
-    let uri = not
-        .params
-        .as_object()
-        .and_then(|o| o.get("textDocument"))
-        .and_then(|o| o.get("uri"))
-        .and_then(|v| v.as_str())
-        .map(|s| Uri::from_str(s).unwrap())
-        .unwrap();
-
-    let file_path = uri.path().as_str();
-    sources.add_or_update_file(SourceFile::from_path(file_path)?);
-
-    context
-        .compile_sources(sources)
-        .map_err(|e| anyhow::anyhow!("{:?}", e))?;
 
     Ok(())
 }
@@ -283,6 +261,40 @@ fn span_to_location(span: &Span) -> Location {
     }
 }
 
+fn reload_sources_on_notification(
+    not: &Notification,
+    context: &mut CompilerContext,
+    sources: &mut SourceFiles,
+) -> Result<()> {
+    let uri = not
+        .params
+        .as_object()
+        .and_then(|o| o.get("textDocument"))
+        .and_then(|o| o.get("uri"))
+        .and_then(|v| v.as_str())
+        .map(|s| Uri::from_str(s).unwrap())
+        .unwrap();
+
+    let file_path = uri.path().as_str();
+    sources.add_or_update_file(SourceFile::from_path(file_path)?);
+
+    context
+        .compile_sources(sources)
+        .map_err(|e| anyhow::anyhow!("{:?}", e))?;
+
+    print_symbol_table(
+        &context
+            .compiled_module
+            .as_ref()
+            .unwrap()
+            .semantic
+            .symbol_table,
+        sources,
+    );
+
+    Ok(())
+}
+
 fn send_response<T: serde::Serialize>(
     connection: &Connection,
     id: RequestId,
@@ -316,4 +328,25 @@ fn send_response<T: serde::Serialize>(
         }
     }
     Ok(())
+}
+
+fn print_symbol_table(table: &SymbolTable, sources: &SourceFiles) {
+    let mut report = Report::build(ariadne::ReportKind::Advice, "gud.rock", 0);
+
+    let file = &sources.files[0];
+
+    for (id, info) in table.symbols.iter() {
+        report.add_label(
+            ariadne::Label::new((
+                file.path(),
+                info.span.start().offset..info.span.end().offset,
+            ))
+            .with_message(format!("symbol[#{}]: '{}'", id.to_u32(), info.ident_text)),
+        );
+    }
+
+    report
+        .finish()
+        .eprint((file.path(), Source::from(file.contents())))
+        .unwrap();
 }

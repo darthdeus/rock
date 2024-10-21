@@ -153,11 +153,7 @@ pub enum SymbolInfoKind {
 
 impl SymbolInfoKind {
     pub fn is_named_type(&self) -> bool {
-        match self {
-            // SymbolInfoKind::Struct { .. } => true,
-            // SymbolInfoKind::Enum { .. } => true,
-            _ => false,
-        }
+        false
     }
 }
 
@@ -557,8 +553,7 @@ impl SymbolTable {
     }
 
     pub fn get_expression_info(&self, expr: &ast::Expr) -> &ExpressionInfo {
-        &self
-            .expressions
+        self.expressions
             .get(&ExpressionId(expr.id))
             .expect("Expression not yet added to symbol table")
     }
@@ -573,15 +568,13 @@ impl SymbolTable {
     }
 
     pub fn get_block_info(&self, block: &ast::Block) -> &BlockInfo {
-        &self
-            .blocks
+        self.blocks
             .get(&BlockId(block.id))
             .expect("Block not yet added to symbol table")
     }
 
     pub fn get_type_expression_info(&self, expr: &ast::TypeExpr) -> &ExpressionInfo {
-        &self
-            .expressions
+        self.expressions
             .get(&ExpressionId(expr.id))
             .unwrap_or_else(|| panic!("Type expression not yet added to symbol table {expr:?}"))
     }
@@ -1271,12 +1264,12 @@ impl ScopeBuilder {
     //     enum_id
     // }
 
-    pub fn declare_global<'a>(&mut self, parent_name: &SymbolName, name: &ast::Ident) -> SymbolId {
+    pub fn declare_global(&mut self, parent_name: &SymbolName, name: &ast::Ident) -> SymbolId {
         let global_id = SymbolId(name.id);
         self.table.symbols.insert(
             global_id,
             SymbolInfo {
-                ident_text: name.text.clone(),
+                ident_text: name.text,
                 name: Some(parent_name.child(&name.text)),
                 ty: TypeTable::TYPE_UNKNOWN,
                 kind: SymbolInfoKind::GlobalVariable,
@@ -1349,4 +1342,10 @@ impl ScopeBuilder {
     //     }
     //     panic!("Fundamental type not found in type table");
     // }
+}
+
+impl Default for ScopeBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
 }
