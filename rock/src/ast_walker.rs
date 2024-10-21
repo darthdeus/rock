@@ -248,26 +248,32 @@ impl AstWalker {
             ast::StatementKind::Comment(_) => (),
             ast::StatementKind::BlankLine => (),
             ast::StatementKind::Nothing => (),
+
             ast::StatementKind::Expression(expr) => {
                 Self::walk_expression(expr, cb)?;
             }
+
             ast::StatementKind::Return(expr) => {
                 if let Some(expr) = expr {
                     Self::walk_expression(expr, cb)?;
                 }
             }
+
             ast::StatementKind::Break => (),
             ast::StatementKind::Continue => (),
+
             ast::StatementKind::Let { expr, ty_expr, .. } => {
                 if let Some(ty_expr) = ty_expr {
                     Self::walk_type_expression(ty_expr, cb)?;
                 }
                 Self::walk_expression(expr, cb)?;
             }
+
             ast::StatementKind::Assign { lhs, rhs } => {
                 Self::walk_expression(lhs, cb)?;
                 Self::walk_expression(rhs, cb)?;
             }
+
             ast::StatementKind::For {
                 var: _,
                 iterable,
@@ -277,6 +283,7 @@ impl AstWalker {
                 Self::walk_expression(iterable, cb)?;
                 Self::walk_block(body, cb)?;
             }
+
             ast::StatementKind::If {
                 cond,
                 then_block,
@@ -289,13 +296,16 @@ impl AstWalker {
                     Self::walk_block(else_block, cb)?;
                 }
             }
+
             ast::StatementKind::While { cond, body } => {
                 Self::walk_expression(cond, cb)?;
                 Self::walk_block(body, cb)?;
-            } // ast::StatementKind::Macro(_) => {
-              //     // We don't emit any events for macros expressions. Users
-              //     // should match on the wrapper AST node instead.
-              // }
+            }
+
+            // ast::StatementKind::Macro(_) => {
+            //     // We don't emit any events for macros expressions. Users
+            //     // should match on the wrapper AST node instead.
+            // }
         }
         cb(AstWalkEvent::OnExit(AstNode::Statement(statement)))?;
         Ok(())
@@ -330,6 +340,7 @@ impl AstWalker {
         cb: &mut impl FnMut(AstWalkEvent) -> Result<(), CompilerError>,
     ) -> Result<(), CompilerError> {
         cb(AstWalkEvent::OnEnter(AstNode::Expression(expr)))?;
+
         match borrow([expr.kind]) {
             ast::ExprKind::Path(_) => (),
             ast::ExprKind::SelfIdent => (),
@@ -338,22 +349,28 @@ impl AstWalker {
             ast::ExprKind::BoolLiteral(_) => (),
             ast::ExprKind::StringLiteral(_) => (),
             ast::ExprKind::NullLiteral => (),
+
+            ast::ExprKind::OptionNoneLiteral => (),
+
             ast::ExprKind::OptionSomeLiteral(inner_expr) => {
                 Self::walk_expression(inner_expr, cb)?;
             }
-            ast::ExprKind::OptionNoneLiteral => (),
+
             ast::ExprKind::FunctionCall { ident: _, args } => {
                 for arg in args {
                     Self::walk_expression(arg, cb)?;
                 }
             }
+
             ast::ExprKind::BinaryOp { op: _, left, right } => {
                 Self::walk_expression(left, cb)?;
                 Self::walk_expression(right, cb)?;
             }
+
             ast::ExprKind::ParenExpr(inner_expr) => {
                 Self::walk_expression(inner_expr, cb)?;
             }
+
             // ast::ExprKind::UnaryOp { op: _, operand } => {
             //     Self::walk_expression(operand, cb)?;
             // }

@@ -3,6 +3,9 @@ use std::path::{Path, PathBuf};
 use anyhow::Result;
 
 use ast::*;
+use compiler_error::CompilerError;
+use semantic::SemanticResult;
+use source_code::SourceFiles;
 use symbol_table::*;
 
 pub mod ast;
@@ -17,15 +20,41 @@ pub mod source_code;
 pub mod symbol_table;
 pub mod types;
 
+pub struct CompiledModule {
+    pub semantic: SemanticResult,
+    // pub ee: Option<llvm::ExecutionEngineId>,
+    // pub level: CompileLevel,
+}
+
 pub struct CompilerContext {
-    pub symbol_table: SymbolTable,
+    pub compiled_module: Option<CompiledModule>,
 }
 
 impl CompilerContext {
     pub fn new() -> Self {
         Self {
-            symbol_table: SymbolTable::new(),
+            compiled_module: None,
         }
+    }
+
+    pub fn get_module(&self) -> Option<&CompiledModule> {
+        self.compiled_module.as_ref()
+    }
+
+    pub fn compile_sources(&mut self, sources: &SourceFiles) -> Result<(), CompilerError> {
+        let result = semantic::compile(sources)?;
+
+        self.compiled_module = Some(CompiledModule { semantic: result });
+
+        eprintln!("Compilation OK");
+
+        Ok(())
+    }
+}
+
+impl Default for CompilerContext {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

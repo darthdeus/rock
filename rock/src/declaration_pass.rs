@@ -15,7 +15,7 @@ use super::*;
 ///   shadowed by other variables in the current scope, so we have to resolve
 ///   this as we walk the AST during this first pass.
 pub fn declaration_pass(
-    top_level: &Vec<TopLevel>,
+    top_level: &[TopLevel],
     scope_builder: &mut ScopeBuilder,
 ) -> Result<(), CompilerError> {
     // profile_scope!("rock_compiler", "declaration_pass::declaration_pass");
@@ -29,7 +29,7 @@ pub fn declaration_pass(
         };
     }
 
-    for item in top_level.into_iter() {
+    for item in top_level.iter() {
         ast_walker::AstWalker::walk_top_level(item, &mut |ev| match ev {
             AstWalkEvent::OnEnter(AstNode::Item(ast::Item {
                 kind: ast::ItemKind::ImplBlock(impl_block),
@@ -83,7 +83,7 @@ pub fn declaration_pass(
 
                 // Add the function arguments to the symbol table
                 for arg in &fndecl.args {
-                    scope_builder.declare_function_argument(&fndecl, &arg);
+                    scope_builder.declare_function_argument(fndecl, arg);
                 }
 
                 Ok(())
@@ -154,7 +154,6 @@ pub fn declaration_pass(
             //     scope_builder.exit_scope();
             //     Ok(())
             // }
-
             AstWalkEvent::OnEnter(AstNode::Expression(expr)) => {
                 match &expr.kind {
                     ast::ExprKind::Path(path) => {

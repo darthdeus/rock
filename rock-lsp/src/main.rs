@@ -57,7 +57,7 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
     let _params: InitializeParams = serde_json::from_value(params)?;
     eprintln!("Starting example main loop");
 
-    let rock_context = CompilerContext::new();
+    let mut rock_context = CompilerContext::new();
     let mut sources = SourceFiles::new(vec![]);
 
     for msg in &connection.receiver {
@@ -100,12 +100,12 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
             Message::Notification(not) => match not.method.as_str() {
                 "textDocument/didSave" => {
                     eprintln!("got textDocument/didSave notification {not:?}");
-                    reload_sources_on_notification(&not, &mut sources)?;
+                    reload_sources_on_notification(&not, &mut rock_context, &mut sources)?;
                 }
 
                 "textDocument/didOpen" => {
                     eprintln!("got textDocument/didOpen notification {not:?}");
-                    reload_sources_on_notification(&not, &mut sources)?;
+                    reload_sources_on_notification(&not, &mut rock_context, &mut sources)?;
                 }
 
                 _ => {
@@ -118,7 +118,11 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
     Ok(())
 }
 
-fn reload_sources_on_notification(not: &Notification, sources: &mut SourceFiles) -> Result<()> {
+fn reload_sources_on_notification(
+    not: &Notification,
+    context: &mut CompilerContext,
+    sources: &mut SourceFiles,
+) -> Result<()> {
     let uri = not
         .params
         .as_object()
@@ -130,6 +134,10 @@ fn reload_sources_on_notification(not: &Notification, sources: &mut SourceFiles)
 
     let file_path = uri.path().as_str();
     sources.add_or_update_file(SourceFile::from_path(file_path)?);
+
+    context
+        .compile_sources(sources)
+        .map_err(|e| anyhow::anyhow!("{:?}", e))?;
 
     Ok(())
 }
@@ -170,10 +178,12 @@ fn go_to_definition(
     let query_loc =
         text_document_position_to_linecol(sources, &params.text_document_position_params)?;
 
-    if let Some(symbol) = c.symbol_table.query_definition_at(query_loc) {
-        let span = c.symbol_table.span_of_symbol(symbol);
-        let response_loc = span_to_location(&span);
-        return Ok(vec![response_loc]);
+    if let Some(module) = c.get_module() {
+        if let Some(symbol) = module.semantic.symbol_table.query_definition_at(query_loc) {
+            let span = module.semantic.symbol_table.span_of_symbol(symbol);
+            let response_loc = span_to_location(&span);
+            return Ok(vec![response_loc]);
+        }
     }
 
     Ok(vec![])
