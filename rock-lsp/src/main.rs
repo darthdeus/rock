@@ -323,20 +323,19 @@ fn do_completion(
         info!("Query location: {:?} ... line: {}", query_loc, line);
     }
 
-
     if let Some(module) = context.get_module() {
         for _ in module.semantic.symbol_table.symbols.values() {
             let result = CompletionItem {
                 label: "rockfun".to_string(),
                 label_details: Some(CompletionItemLabelDetails {
-                    detail: Some("GOODROCK".to_string()),
-                    description: Some("fn-rockfun-GOODROCK YES MAYBE?".to_string()),
+                    detail: Some("label-ROCK-DETAIL".to_string()),
+                    description: Some("label-ROCK-DESC".to_string()),
                 }),
                 kind: Some(CompletionItemKind::VARIABLE),
-                detail: Some("Very good information about the rock".to_string()),
+                detail: Some("item-detail: Very good information about the rock".to_string()),
                 // TODO: once we have markup, use that instead.
                 documentation: Some(Documentation::String(
-                    "DETAILED DOCUMENTATION OF ROCKS".to_string(),
+                    "item-doc: DETAILED DOCUMENTATION OF ROCKS\n\nRocks are made of rock.".to_string(),
                 )),
                 deprecated: Some(false),
                 preselect: Some(true),
