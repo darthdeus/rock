@@ -120,7 +120,7 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
                 let _req = match cast::<Completion>(req) {
                     Ok((id, params)) => {
                         info!("completion request #{id}: {params:?}");
-                        let result = do_completion(&rock_context, &sources, &params);
+                        let result = do_completion(&mut rock_context, &mut sources, &params);
                         send_response(&connection, id, result)?;
                         continue;
                     }
@@ -136,12 +136,20 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
             Message::Notification(not) => match not.method.as_str() {
                 "textDocument/didSave" => {
                     info!("got textDocument/didSave notification {not:?}");
-                    reload_sources_on_notification(&not, &mut rock_context, &mut sources)?;
+                    reload_sources_on_notification(
+                        &notification_uri(&not)?,
+                        &mut rock_context,
+                        &mut sources,
+                    )?;
                 }
 
                 "textDocument/didOpen" => {
                     info!("got textDocument/didOpen notification {not:?}");
-                    reload_sources_on_notification(&not, &mut rock_context, &mut sources)?;
+                    reload_sources_on_notification(
+                        &notification_uri(&not)?,
+                        &mut rock_context,
+                        &mut sources,
+                    )?;
                 }
 
                 _ => {
@@ -271,12 +279,23 @@ fn do_hover(
 }
 
 fn do_completion(
-    context: &CompilerContext,
-    sources: &SourceFiles,
+    context: &mut CompilerContext,
+    sources: &mut SourceFiles,
     params: &lsp_types::CompletionParams,
 ) -> Result<CompletionResponse, anyhow::Error> {
     let mut completions = vec![];
     info!("COMPLETION PARAMS: {:#?}", params);
+
+    let query_uri = &params.text_document_position.text_document.uri;
+
+    reload_sources_on_notification(query_uri, context, sources)?;
+
+    let query_loc = text_document_position_to_linecol(sources, &params.text_document_position)?;
+    let line = sources.get_line(&query_loc);
+
+    if let Some(line) = line {
+        info!("Query location: {:?} ... line: {}", query_loc, line);
+    }
 
     if let Some(module) = context.get_module() {
         for symbol in module.semantic.symbol_table.symbols.values() {
@@ -331,20 +350,29 @@ fn span_to_location(span: &Span) -> Location {
     }
 }
 
-fn reload_sources_on_notification(
-    not: &Notification,
-    context: &mut CompilerContext,
-    sources: &mut SourceFiles,
-) -> Result<()> {
-    let uri = not
-        .params
+fn notification_uri(not: &Notification) -> Result<Uri> {
+    not.params
         .as_object()
         .and_then(|o| o.get("textDocument"))
         .and_then(|o| o.get("uri"))
         .and_then(|v| v.as_str())
         .map(|s| Uri::from_str(s).unwrap())
-        .unwrap();
+        .ok_or_else(|| anyhow::anyhow!("Failed to get uri from notification"))
+    // let uri = not
+    //     .params
+    //     .as_object()
+    //     .and_then(|o| o.get("textDocument"))
+    //     .and_then(|o| o.get("uri"))
+    //     .and_then(|v| v.as_str())
+    //     .map(|s| Uri::from_str(s).unwrap())
+    //     .unwrap();
+}
 
+fn reload_sources_on_notification(
+    uri: &Uri,
+    context: &mut CompilerContext,
+    sources: &mut SourceFiles,
+) -> Result<()> {
     let file_path = uri.path().as_str();
     sources.add_or_update_file(SourceFile::from_path(file_path)?);
 

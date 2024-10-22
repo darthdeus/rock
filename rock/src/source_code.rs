@@ -222,4 +222,9 @@ impl SourceFiles {
             self.files.push(file);
         }
     }
+
+    pub fn get_line(&self, line_col: &LineCol) -> Option<&str> {
+        let file = self.files.iter().find(|f| *f.path == *line_col.file)?;
+        file.contents.lines().nth(line_col.line)
+    }
 }

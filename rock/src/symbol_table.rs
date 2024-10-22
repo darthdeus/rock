@@ -1,7 +1,7 @@
 use std::collections::{hash_map::Entry, HashMap};
 use std::fmt::Write;
 
-use log::info;
+// use log::info;
 
 use crate::{
     ast,
@@ -1062,9 +1062,9 @@ impl ScopeBuilder {
     }
 
     pub fn declare_local_variable(&mut self, ident: &ast::Ident) -> SymbolId {
-        info!("DECLARE LOCAL VAR!!! {}", ident.text);
-        info!("DECLARE LOCAL VAR!!! {}", ident.text);
-        info!("DECLARE LOCAL VAR!!! {}", ident.text);
+        // info!("DECLARE LOCAL VAR!!! {}", ident.text);
+        // info!("DECLARE LOCAL VAR!!! {}", ident.text);
+        // info!("DECLARE LOCAL VAR!!! {}", ident.text);
 
         let var_id = SymbolId(ident.id);
         let var_info = SymbolInfo {
