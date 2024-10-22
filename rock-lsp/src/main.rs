@@ -45,7 +45,7 @@ fn main() -> Result<()> {
         text_document_sync: Some(TextDocumentSyncCapability::Options(
             TextDocumentSyncOptions {
                 open_close: Some(true),
-                change: Some(TextDocumentSyncKind::NONE),
+                change: Some(TextDocumentSyncKind::FULL),
                 will_save: Some(false),
                 will_save_wait_until: Some(false),
                 save: Some(TextDocumentSyncSaveOptions::SaveOptions(SaveOptions {
@@ -150,6 +150,33 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
                         &mut rock_context,
                         &mut sources,
                     )?;
+                }
+
+                "textDocument/didChange" => {
+                    let uri = notification_uri(&not)?;
+
+                    // info!("got textDocument/didChange notification {not:?}");
+                    info!(
+                        "got textDocument/didChange notification {}",
+                        uri.path().as_str()
+                    );
+
+                    let contents = not
+                        .params
+                        .as_object()
+                        .and_then(|o| o.get("contentChanges"))
+                        .and_then(|v| v.as_array())
+                        .and_then(|a| a.first())
+                        .and_then(|v| v.get("text"))
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string())
+                        .ok_or_else(|| {
+                            anyhow::anyhow!("Failed to get contents from notification")
+                        })?;
+
+                    // info!("**** URI: {:?}\n\n{}\n\n******", uri, contents);
+
+                    reload_sources_on_change(&uri, contents, &mut rock_context, &mut sources)?;
                 }
 
                 _ => {
@@ -284,11 +311,10 @@ fn do_completion(
     params: &lsp_types::CompletionParams,
 ) -> Result<CompletionResponse, anyhow::Error> {
     let mut completions = vec![];
-    info!("COMPLETION PARAMS: {:#?}", params);
+    // info!("COMPLETION PARAMS: {:#?}", params);
 
-    let query_uri = &params.text_document_position.text_document.uri;
-
-    reload_sources_on_notification(query_uri, context, sources)?;
+    // let query_uri = &params.text_document_position.text_document.uri;
+    // reload_sources_on_notification(query_uri, context, sources)?;
 
     let query_loc = text_document_position_to_linecol(sources, &params.text_document_position)?;
     let line = sources.get_line(&query_loc);
@@ -380,16 +406,34 @@ fn reload_sources_on_notification(
         .compile_sources(sources)
         .map_err(|e| anyhow::anyhow!("{:?}", e))?;
 
-    print_symbol_table(
-        &context
-            .compiled_module
-            .as_ref()
-            .unwrap()
-            .semantic
-            .symbol_table,
-        sources,
-        None,
-    );
+    // print_symbol_table(
+    //     &context
+    //         .compiled_module
+    //         .as_ref()
+    //         .unwrap()
+    //         .semantic
+    //         .symbol_table,
+    //     sources,
+    //     None,
+    // );
+
+    Ok(())
+}
+
+fn reload_sources_on_change(
+    uri: &Uri,
+    contents: String,
+    context: &mut CompilerContext,
+    sources: &mut SourceFiles,
+) -> Result<()> {
+    sources.add_or_update_file(SourceFile::from_path_and_contents(
+        uri.path().as_str(),
+        contents,
+    )?);
+
+    context
+        .compile_sources(sources)
+        .map_err(|e| anyhow::anyhow!("{:?}", e))?;
 
     Ok(())
 }

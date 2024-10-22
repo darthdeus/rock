@@ -140,11 +140,16 @@ pub struct SourceFile {
 
 impl SourceFile {
     pub fn from_path(path: impl AsRef<Path>) -> Result<Self> {
+        let contents = std::fs::read_to_string(&path)?;
+        Self::from_path_and_contents(path, contents)
+    }
+
+    pub fn from_path_and_contents(path: impl AsRef<Path>, contents: String) -> Result<Self> {
         let path = std::fs::canonicalize(path.as_ref())?;
         Ok(SourceFile {
             path: path.to_str().unwrap().to_string(),
             filename: path.file_name().unwrap().to_string_lossy().to_string(),
-            contents: std::fs::read_to_string(path)?,
+            contents,
         })
     }
 

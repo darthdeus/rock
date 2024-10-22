@@ -15,7 +15,7 @@ fn bar(hel, lo:string) -> string {
     let f = hel + lo;
     print(f[4-5].rock);
 
-    print(f, ro);
+    print(f, rock);
 
     // foo(3, 4, 5);
     return "hel";
