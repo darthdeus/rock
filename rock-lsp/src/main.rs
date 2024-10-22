@@ -323,8 +323,9 @@ fn do_completion(
         info!("Query location: {:?} ... line: {}", query_loc, line);
     }
 
+
     if let Some(module) = context.get_module() {
-        for symbol in module.semantic.symbol_table.symbols.values() {
+        for _ in module.semantic.symbol_table.symbols.values() {
             let result = CompletionItem {
                 label: "rockfun".to_string(),
                 label_details: Some(CompletionItemLabelDetails {
