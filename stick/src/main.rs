@@ -4,6 +4,7 @@ use std::{
     os::unix::net::{UnixListener, UnixStream},
     path::Path,
     process::{Command, Stdio},
+    sync::mpsc,
     thread,
 };
 
@@ -22,24 +23,27 @@ struct Args {
     #[arg(value_enum)]
     mode: Mode,
 
-    // Command to run
     #[arg()]
-    command: String,
+    command: Option<String>,
 
-    // Path to the Unix socket
-    #[arg(short, long)]
+    #[arg(short, long, default_value = "/tmp/rock-lsp-stick.sock")]
     socket_path: String,
 }
 
 fn main() -> Result<()> {
     let args = Args::parse();
 
+    // Ensure the `command` is provided if the mode is `Client`
+    if args.mode == Mode::Client && args.command.is_none() {
+        return Err(anyhow::anyhow!("`command` is required when mode is Client"));
+    }
+
     match args.mode {
         Mode::Client => {
-            start_client(&args.command, &args.socket_path)?;
+            start_client(&args.command.unwrap(), &args.socket_path).unwrap();
         }
         Mode::Server => {
-            start_server(&args.socket_path)?;
+            start_server(&args.socket_path).unwrap();
         }
     }
 
@@ -47,6 +51,9 @@ fn main() -> Result<()> {
 }
 
 fn start_client(command: &str, socket_path: &str) -> Result<()> {
+    // Create a channel for sending messages between threads
+    let (tx, rx) = mpsc::channel();
+
     // Spawn a subprocess
     let mut child = Command::new(command)
         .stdin(Stdio::piped())
@@ -59,46 +66,57 @@ fn start_client(command: &str, socket_path: &str) -> Result<()> {
     let child_stdout = child.stdout.take().expect("Failed to open stdout");
     let child_stderr = child.stderr.take().expect("Failed to open stderr");
 
-    let s1 = socket_path.to_string();
-
-    // Line-buffered stdin forwarding
+    // Thread for handling stdin, prefix with "IN"
+    let stdin_tx = tx.clone();
     let stdin_handle = thread::spawn(move || {
-        let mut socket = UnixStream::connect(s1).unwrap();
         let stdin = io::stdin();
         let stdin_lock = stdin.lock();
         let mut lines = stdin_lock.lines();
 
         while let Some(Ok(line)) = lines.next() {
             writeln!(child_stdin, "{}", line).expect("Failed to write to child stdin");
-            writeln!(socket, "IN:{}", line).expect("Failed to write to socket");
+            stdin_tx
+                .send(format!("IN:{}", line))
+                .expect("Failed to send stdin to channel");
         }
     });
 
-    let s2 = socket_path.to_string();
-
-    // Capture and forward stdout line-by-line
+    // Thread for handling stdout, prefix with "OUT"
+    let stdout_tx = tx.clone();
     let stdout_handle = thread::spawn(move || {
-        let mut socket = UnixStream::connect(s2).unwrap();
         let stdout_reader = BufReader::new(child_stdout);
 
         for line in stdout_reader.lines() {
             let line = line.expect("Failed to read line from stdout");
             println!("{}", line);
-            writeln!(socket, "OUT:{}", line).expect("Failed to write to socket");
+            stdout_tx
+                .send(format!("OUT:{}", line))
+                .expect("Failed to send stdout to channel");
         }
     });
 
-    let s3 = socket_path.to_string();
-
-    // Capture and forward stderr line-by-line
+    // Thread for handling stderr, prefix with "ERR"
+    let stderr_tx = tx.clone();
     let stderr_handle = thread::spawn(move || {
-        let mut socket = UnixStream::connect(s3).unwrap();
         let stderr_reader = BufReader::new(child_stderr);
 
         for line in stderr_reader.lines() {
             let line = line.expect("Failed to read line from stderr");
             eprintln!("{}", line);
-            writeln!(socket, "ERR:{}", line).expect("Failed to write to socket");
+            stderr_tx
+                .send(format!("ERR:{}", line))
+                .expect("Failed to send stderr to channel");
+        }
+    });
+
+    let s = socket_path.to_string();
+
+    // Thread for writing to the Unix domain socket
+    let writer_handle = thread::spawn(move || {
+        let mut socket = UnixStream::connect(s).expect("Failed to connect to socket");
+
+        for message in rx {
+            writeln!(socket, "{}", message).expect("Failed to write to socket");
         }
     });
 
@@ -107,9 +125,15 @@ fn start_client(command: &str, socket_path: &str) -> Result<()> {
     let _ = stdout_handle.join();
     let _ = stderr_handle.join();
 
+    // Close the channel by dropping the sender (so that the writer thread can finish)
+    drop(tx);
+
+    // Wait for the writer thread to finish
+    let _ = writer_handle.join();
+
     // Wait for child process to exit
     let status = child.wait().expect("Child process wasn't running");
-    println!("Process exited with: {}", status);
+    eprintln!("Process exited with: {}", status);
 
     Ok(())
 }
