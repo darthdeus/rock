@@ -8,6 +8,7 @@ use std::{
     thread,
 };
 
+use ansi_term::{ANSIGenericString, Color};
 use anyhow::Result;
 use clap::{Parser, ValueEnum};
 
@@ -211,9 +212,9 @@ fn handle_stream(stream: UnixStream) -> Result<()> {
 
             if c == b'\n' {
                 match ty {
-                    0 => print_buf("IN", &mut in_buf),
-                    1 => print_buf("OUT", &mut out_buf),
-                    2 => print_buf("ERR", &mut err_buf),
+                    0 => print_buf(Color::Blue.bold().paint("IN:"), &mut in_buf),
+                    1 => print_buf(Color::Green.bold().paint("OUT:"), &mut out_buf),
+                    2 => print_buf(Color::Red.bold().paint("ERR:"), &mut err_buf),
                     _ => println!("INVALID TAG BYTE"),
                 }
             }
@@ -223,7 +224,7 @@ fn handle_stream(stream: UnixStream) -> Result<()> {
     Ok(())
 }
 
-fn print_buf(prefix: &str, buf: &mut Vec<u8>) {
-    print!("{}: {}", prefix, String::from_utf8_lossy(buf));
+fn print_buf(prefix: ANSIGenericString<'_, str>, buf: &mut Vec<u8>) {
+    print!("{} {}", prefix, String::from_utf8_lossy(buf));
     buf.clear();
 }
