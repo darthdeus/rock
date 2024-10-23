@@ -2,6 +2,7 @@
 name = "rock"
 version = "0.1.0"
 edition = "2021"
+license = "MPL"
 
 [dependencies]
 tree-sitter = "0.24.3"

@@ -1,6 +1,7 @@
 use anyhow::Result;
 use compiler_error::CompilerError;
 use debug::NodeExt;
+use log::error;
 use source_code::{LineCol, SourceFile};
 use tree_sitter::Node;
 
@@ -507,7 +508,7 @@ pub fn parse_expression(
         }
 
         _ => {
-            println!("node.kind(): '{}'", node.to_sexp());
+            error!("node.kind(): '{}'", node.to_sexp());
             bail_unexpected!(node, source, "expression");
         }
     };

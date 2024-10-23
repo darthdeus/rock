@@ -83,7 +83,7 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
     let mut sources = SourceFiles::new(vec![]);
 
     for msg in &connection.receiver {
-        debug!("got msg: {msg:?}");
+        info!("got msg: {msg:?}");
 
         match msg {
             Message::Request(req) => {
@@ -180,7 +180,7 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
                 }
 
                 _ => {
-                    info!("got notification: {not:?}");
+                    info!("UNEXPECTED notification: {not:?}");
                 }
             },
         }
@@ -322,6 +322,8 @@ fn do_completion(
     if let Some(line) = line {
         info!("Query location: {:?} ... line: {}", query_loc, line);
     }
+
+    eprintln!("goob");
 
     if let Some(module) = context.get_module() {
         for _ in module.semantic.symbol_table.symbols.values() {

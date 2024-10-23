@@ -20,5 +20,7 @@ else
   STDBUF="stdbuf"
 fi
 
-$STDBUF -o0 "$SCRIPT_DIR/target/debug/rock-lsp" "$@" \
+# "$SCRIPT_DIR/target/debug/rock-lsp" "$@" \
+#   2> >($STDBUF -o0 sed 's/\\n/\n/g' | tee -a /tmp/rock-lsp-stderr.log >&2)
+$STDBUF -o0 tee -a /tmp/rock-lsp-stdin.log | $STDBUF -o0 "$SCRIPT_DIR/target/debug/rock-lsp" "$@" \
   2> >($STDBUF -o0 sed 's/\\n/\n/g' | $STDBUF -o0 tee -a /tmp/rock-lsp-stderr.log >&2)
