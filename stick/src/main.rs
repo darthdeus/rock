@@ -1,6 +1,6 @@
 use std::{
     fs,
-    io::{self, BufRead, BufReader, Write},
+    io::{self, BufRead, BufReader, Read, Write},
     os::unix::net::{UnixListener, UnixStream},
     path::Path,
     process::{Command, Stdio},
@@ -51,10 +51,8 @@ fn main() -> Result<()> {
 }
 
 fn start_client(command: &str, socket_path: &str) -> Result<()> {
-    // Create a channel for sending messages between threads
     let (tx, rx) = mpsc::channel();
 
-    // Spawn a subprocess
     let mut child = Command::new(command)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -63,52 +61,65 @@ fn start_client(command: &str, socket_path: &str) -> Result<()> {
         .expect("Failed to spawn child process");
 
     let mut child_stdin = child.stdin.take().expect("Failed to open stdin");
-    let child_stdout = child.stdout.take().expect("Failed to open stdout");
-    let child_stderr = child.stderr.take().expect("Failed to open stderr");
+    let mut child_stdout = child.stdout.take().expect("Failed to open stdout");
+    let mut child_stderr = child.stderr.take().expect("Failed to open stderr");
 
-    // Thread for handling stdin, prefix with "IN"
+    // STDIN
     let stdin_tx = tx.clone();
     let stdin_handle = thread::spawn(move || {
         let stdin = io::stdin();
-        let stdin_lock = stdin.lock();
-        let mut lines = stdin_lock.lines();
+        let mut stdin_lock = stdin.lock();
+        let mut buffer = [0u8; 1]; // Buffer for single character
 
-        while let Some(Ok(line)) = lines.next() {
-            writeln!(child_stdin, "{}", line).expect("Failed to write to child stdin");
+        while stdin_lock.read_exact(&mut buffer).is_ok() {
+            // Send to child stdin
+            child_stdin
+                .write_all(&buffer)
+                .expect("Failed to write to child stdin");
+            child_stdin.flush().expect("Failed to flush stdin");
+
+            // Send the character to the channel prefixed with "IN"
             stdin_tx
-                .send(format!("IN:{}", line))
+                .send(format!("IN:{}", buffer[0] as char))
                 .expect("Failed to send stdin to channel");
         }
     });
 
-    // Thread for handling stdout, prefix with "OUT"
+    // STDOUT
     let stdout_tx = tx.clone();
     let stdout_handle = thread::spawn(move || {
-        let stdout_reader = BufReader::new(child_stdout);
+        let mut buffer = [0u8; 1]; // Buffer for single character
 
-        for line in stdout_reader.lines() {
-            let line = line.expect("Failed to read line from stdout");
-            println!("{}", line);
+        while child_stdout.read_exact(&mut buffer).is_ok() {
+            // Print stdout character to screen
+            print!("{}", buffer[0] as char);
+            io::stdout().flush().expect("Failed to flush stdout");
+
+            // Send the character to the channel prefixed with "OUT"
             stdout_tx
-                .send(format!("OUT:{}", line))
+                .send(format!("OUT:{}", buffer[0] as char))
                 .expect("Failed to send stdout to channel");
         }
     });
 
-    // Thread for handling stderr, prefix with "ERR"
+    // STDERR
     let stderr_tx = tx.clone();
     let stderr_handle = thread::spawn(move || {
-        let stderr_reader = BufReader::new(child_stderr);
+        let mut buffer = [0u8; 1]; // Buffer for single character
 
-        for line in stderr_reader.lines() {
-            let line = line.expect("Failed to read line from stderr");
-            eprintln!("{}", line);
+        while child_stderr.read_exact(&mut buffer).is_ok() {
+            // Print stderr character to screen
+            eprint!("{}", buffer[0] as char);
+            io::stderr().flush().expect("Failed to flush stderr");
+
+            // Send the character to the channel prefixed with "ERR"
             stderr_tx
-                .send(format!("ERR:{}", line))
+                .send(format!("ERR:{}", buffer[0] as char))
                 .expect("Failed to send stderr to channel");
         }
     });
 
+    // Path to the Unix socket
     let s = socket_path.to_string();
 
     // Thread for writing to the Unix domain socket
@@ -116,7 +127,10 @@ fn start_client(command: &str, socket_path: &str) -> Result<()> {
         let mut socket = UnixStream::connect(s).expect("Failed to connect to socket");
 
         for message in rx {
-            writeln!(socket, "{}", message).expect("Failed to write to socket");
+            socket
+                .write_all(message.as_bytes())
+                .expect("Failed to write to socket");
+            socket.flush().expect("Failed to flush socket");
         }
     });
 
@@ -173,7 +187,8 @@ fn handle_client(stream: UnixStream) -> Result<()> {
                 "IN" => println!("Received IN: {}", message),
                 "OUT" => println!("Received OUT: {}", message),
                 "ERR" => eprintln!("Received ERR: {}", message),
-                _ => eprintln!("Unknown prefix: {}", line),
+                // _ => eprintln!("Unknown prefix: {}", line),
+                _ => print!("{}...{}", prefix, message),
             }
         }
     }
