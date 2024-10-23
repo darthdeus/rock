@@ -1,6 +1,6 @@
 use std::{
     fs,
-    io::{self, BufRead, BufReader, Read, Write},
+    io::{self, BufReader, Read, Write},
     os::unix::net::{UnixListener, UnixStream},
     path::Path,
     process::{Command, Stdio},
@@ -50,9 +50,18 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn start_client(command: &str, socket_path: &str) -> Result<()> {
-    let (tx, rx) = mpsc::channel();
+#[derive(Copy, Clone, Debug)]
+enum BufByte {
+    Stdin(u8),
+    Stdout(u8),
+    Stderr(u8),
+}
 
+fn start_client(command: &str, socket_path: &str) -> Result<()> {
+    // Create a channel for sending messages between threads
+    let (tx, rx) = mpsc::channel::<BufByte>();
+
+    // Spawn a subprocess
     let mut child = Command::new(command)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -64,62 +73,54 @@ fn start_client(command: &str, socket_path: &str) -> Result<()> {
     let mut child_stdout = child.stdout.take().expect("Failed to open stdout");
     let mut child_stderr = child.stderr.take().expect("Failed to open stderr");
 
-    // STDIN
     let stdin_tx = tx.clone();
     let stdin_handle = thread::spawn(move || {
+        let mut buffer = [0u8; 1];
+
         let stdin = io::stdin();
         let mut stdin_lock = stdin.lock();
-        let mut buffer = [0u8; 1]; // Buffer for single character
 
         while stdin_lock.read_exact(&mut buffer).is_ok() {
-            // Send to child stdin
             child_stdin
                 .write_all(&buffer)
                 .expect("Failed to write to child stdin");
-            child_stdin.flush().expect("Failed to flush stdin");
 
-            // Send the character to the channel prefixed with "IN"
             stdin_tx
-                .send(format!("IN:{}", buffer[0] as char))
+                .send(BufByte::Stdin(buffer[0]))
                 .expect("Failed to send stdin to channel");
         }
     });
 
-    // STDOUT
     let stdout_tx = tx.clone();
     let stdout_handle = thread::spawn(move || {
-        let mut buffer = [0u8; 1]; // Buffer for single character
+        let mut buffer = [0u8; 1];
+        let mut stdout = io::stdout();
 
         while child_stdout.read_exact(&mut buffer).is_ok() {
-            // Print stdout character to screen
-            print!("{}", buffer[0] as char);
-            io::stdout().flush().expect("Failed to flush stdout");
+            stdout.write_all(&buffer).unwrap();
+            stdout.flush().unwrap();
 
-            // Send the character to the channel prefixed with "OUT"
             stdout_tx
-                .send(format!("OUT:{}", buffer[0] as char))
+                .send(BufByte::Stdout(buffer[0]))
                 .expect("Failed to send stdout to channel");
         }
     });
 
-    // STDERR
     let stderr_tx = tx.clone();
     let stderr_handle = thread::spawn(move || {
-        let mut buffer = [0u8; 1]; // Buffer for single character
+        let mut buffer = [0u8; 1];
+        let mut stderr = io::stderr();
 
         while child_stderr.read_exact(&mut buffer).is_ok() {
-            // Print stderr character to screen
-            eprint!("{}", buffer[0] as char);
-            io::stderr().flush().expect("Failed to flush stderr");
+            stderr.write_all(&buffer).unwrap();
+            stderr.flush().unwrap();
 
-            // Send the character to the channel prefixed with "ERR"
             stderr_tx
-                .send(format!("ERR:{}", buffer[0] as char))
+                .send(BufByte::Stderr(buffer[0]))
                 .expect("Failed to send stderr to channel");
         }
     });
 
-    // Path to the Unix socket
     let s = socket_path.to_string();
 
     // Thread for writing to the Unix domain socket
@@ -127,10 +128,13 @@ fn start_client(command: &str, socket_path: &str) -> Result<()> {
         let mut socket = UnixStream::connect(s).expect("Failed to connect to socket");
 
         for message in rx {
-            socket
-                .write_all(message.as_bytes())
-                .expect("Failed to write to socket");
-            socket.flush().expect("Failed to flush socket");
+            let buf: [u8; 2] = match message {
+                BufByte::Stdin(c) => [0, c],
+                BufByte::Stdout(c) => [1, c],
+                BufByte::Stderr(c) => [2, c],
+            };
+
+            socket.write_all(&buf).expect("Failed to write to socket");
         }
     });
 
@@ -166,7 +170,7 @@ fn start_server(socket_path: &str) -> Result<()> {
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                handle_client(stream)?;
+                handle_stream(stream)?;
             }
             Err(e) => {
                 eprintln!("Connection failed: {}", e);
@@ -177,21 +181,49 @@ fn start_server(socket_path: &str) -> Result<()> {
     Ok(())
 }
 
-fn handle_client(stream: UnixStream) -> Result<()> {
-    let reader = BufReader::new(&stream);
+fn handle_stream(stream: UnixStream) -> Result<()> {
+    let reader = BufReader::new(stream);
 
-    for line in reader.lines() {
-        let line = line?;
-        if let Some((prefix, message)) = line.split_once(':') {
-            match prefix {
-                "IN" => println!("Received IN: {}", message),
-                "OUT" => println!("Received OUT: {}", message),
-                "ERR" => eprintln!("Received ERR: {}", message),
-                // _ => eprintln!("Unknown prefix: {}", line),
-                _ => print!("{}...{}", prefix, message),
+    let mut ty: u8 = 0;
+    let mut c: u8;
+    let mut tiktok = false;
+
+    let mut in_buf = Vec::new();
+    let mut out_buf = Vec::new();
+    let mut err_buf = Vec::new();
+
+    for byte in reader.bytes() {
+        let byte = byte?;
+
+        if !tiktok {
+            tiktok = true;
+            ty = byte;
+        } else {
+            tiktok = false;
+            c = byte;
+
+            match ty {
+                0 => in_buf.push(c),
+                1 => out_buf.push(c),
+                2 => err_buf.push(c),
+                _ => println!("INVALID TAG BYTE"),
+            }
+
+            if c == b'\n' {
+                match ty {
+                    0 => print_buf("IN", &mut in_buf),
+                    1 => print_buf("OUT", &mut out_buf),
+                    2 => print_buf("ERR", &mut err_buf),
+                    _ => println!("INVALID TAG BYTE"),
+                }
             }
         }
     }
 
     Ok(())
+}
+
+fn print_buf(prefix: &str, buf: &mut Vec<u8>) {
+    print!("{}: {}", prefix, String::from_utf8_lossy(buf));
+    buf.clear();
 }

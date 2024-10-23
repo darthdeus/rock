@@ -26,5 +26,6 @@ fi
 # $STDBUF -o0 tee -a /tmp/rock-lsp-stdin.log | $STDBUF -o0 "$SCRIPT_DIR/target/debug/rock-lsp" "$@" \
 #   2> >($STDBUF -o0 sed 's/\\n/\n/g' | $STDBUF -o0 tee -a /tmp/rock-lsp-stderr.log >&2)
 
-cargo run -q --bin stick client ./target/debug/rock-lsp
+$STDBUF -o0 tee -a /tmp/rock-lsp-stdin.log | $STDBUF -o0 ./target/debug/stick client ./target/debug/rock-lsp
+# $STDBUF -o0 tee -a /tmp/rock-lsp-stdin.log | $STDBUF -o0 ./target/debug/rock-lsp
 # ./target/debug/rock-lsp
