@@ -142,6 +142,7 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
                 "textDocument/didSave" => {
                     info!("got textDocument/didSave notification {not:?}");
                     reload_sources_on_notification(
+                        &connection,
                         &notification_uri(&not)?,
                         &mut rock_context,
                         &mut sources,
@@ -151,6 +152,7 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
                 "textDocument/didOpen" => {
                     info!("got textDocument/didOpen notification {not:?}");
                     reload_sources_on_notification(
+                        &connection,
                         &notification_uri(&not)?,
                         &mut rock_context,
                         &mut sources,
@@ -181,7 +183,7 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
 
                     // info!("**** URI: {:?}\n\n{}\n\n******", uri, contents);
 
-                    reload_sources_on_change(&uri, contents, &mut rock_context, &mut sources)?;
+                    reload_sources_on_change(&connection, &uri, contents, &mut rock_context, &mut sources)?;
                 }
 
                 _ => {
@@ -403,6 +405,7 @@ fn notification_uri(not: &lsp_server::Notification) -> Result<Uri> {
 }
 
 fn reload_sources_on_notification(
+    connection: &Connection,
     uri: &Uri,
     context: &mut CompilerContext,
     sources: &mut SourceFiles,
@@ -411,12 +414,13 @@ fn reload_sources_on_notification(
 
     sources.add_or_update_file(SourceFile::from_path(saved_file_path)?);
 
-    compile_and_send_diagnostics(saved_file_path, context, sources)?;
+    compile_and_send_diagnostics(connection, saved_file_path, context, sources)?;
 
     Ok(())
 }
 
 fn reload_sources_on_change(
+    connection: &Connection,
     uri: &Uri,
     contents: String,
     context: &mut CompilerContext,
@@ -429,12 +433,13 @@ fn reload_sources_on_change(
         contents,
     )?);
 
-    compile_and_send_diagnostics(saved_file_path, context, sources)?;
+    compile_and_send_diagnostics(connection, saved_file_path, context, sources)?;
 
     Ok(())
 }
 
 fn compile_and_send_diagnostics(
+    connection: &Connection,
     saved_file_path: &str,
     context: &mut CompilerContext,
     sources: &SourceFiles,
@@ -560,6 +565,14 @@ fn compile_and_send_diagnostics(
             params: serde_json::to_value(params).unwrap(),
         }));
     }
+
+    info!("GOT {} MESSAGES", messages.len());
+
+    for message in &messages {
+        info!("{:#?}", message);
+        connection.sender.send(message.clone())?;
+    }
+
     Ok(messages)
 }
 

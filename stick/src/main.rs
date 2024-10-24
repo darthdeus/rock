@@ -11,6 +11,7 @@ use std::{
 use ansi_term::{ANSIGenericString, Color};
 use anyhow::Result;
 use clap::{Parser, ValueEnum};
+use notify_rust::Notification;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum Mode {
@@ -40,9 +41,12 @@ fn main() -> Result<()> {
     }
 
     match args.mode {
-        Mode::Client => {
-            start_client(&args.command.unwrap(), &args.socket_path).unwrap();
-        }
+        Mode::Client => match start_client(&args.command.unwrap(), &args.socket_path) {
+            Ok(_) => {}
+            Err(err) => {
+                notify(format!("rock-lsp-stick exited with error: {}", err));
+            }
+        },
         Mode::Server => {
             start_server(&args.socket_path).unwrap();
         }
@@ -154,7 +158,13 @@ fn start_client(command: &str, socket_path: &str) -> Result<()> {
     let status = child.wait().expect("Child process wasn't running");
     eprintln!("Process exited with: {}", status);
 
+    notify(format!("rock-lsp-stick exited with status {}", status));
+
     Ok(())
+}
+
+fn notify(msg: impl AsRef<str>) {
+    Notification::new().summary(msg.as_ref()).show().unwrap();
 }
 
 fn start_server(socket_path: &str) -> Result<()> {

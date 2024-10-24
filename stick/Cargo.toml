@@ -8,3 +8,4 @@ license = "MPL"
 clap = { version = "4.5.20", features = ["derive"] }
 anyhow = "1.0"
 ansi_term = "0.12.1"
+notify-rust = "4"
