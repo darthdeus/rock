@@ -15,7 +15,7 @@ foo(5);
 fn bar(hel, lo:string) -> string {
     let f = hel + lo;
 
-    print
+    print("hello");
 
     return "hel";
     return "lul" + hel + "sad"+lo;

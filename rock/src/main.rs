@@ -24,7 +24,10 @@ fn main() {
             let source_file = rock::source_code::SourceFile::from_path(&args.file).unwrap();
             let sources = rock::source_code::SourceFiles::new(vec![source_file]);
             let result = rock::semantic::compile(&sources).unwrap();
+
             print_symbol_table(&result.symbol_table, &sources, None);
+
+            println!("{}", result.lua_code);
         }
     }
 }

@@ -11,6 +11,7 @@ use symbol_table::*;
 
 pub mod ast;
 pub mod ast_walker;
+pub mod codegen_pass;
 pub mod compiler_error;
 pub mod debug;
 pub mod declaration_pass;
