@@ -1123,6 +1123,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "ariadne",
+ "clap",
  "dashmap",
  "duplicate",
  "env_logger",
@@ -1146,10 +1147,12 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "ariadne",
+ "clap",
  "env_logger",
  "log",
  "lsp-server",
  "lsp-types",
+ "notify-rust",
  "rock",
  "serde",
  "serde_json",

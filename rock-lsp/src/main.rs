@@ -6,6 +6,7 @@ use std::{
 
 use anyhow::Result;
 use ariadne::{Report, Source};
+use clap::{command, Parser};
 use log::{debug, error, info};
 use lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response};
 use lsp_types::{
@@ -21,13 +22,19 @@ use lsp_types::{
 
 use rock::*;
 use source_code::{LineCol, SourceFile, SourceFiles, Span};
-use symbol_table::SymbolTable;
+use symbol_table::{print_symbol_table, SymbolTable};
+
+#[derive(clap::Parser)]
+#[command(version = env!("CARGO_PKG_VERSION"), about = "Rock LSP server")]
+struct Args {}
 
 fn main() -> Result<()> {
     env_logger::builder()
         .filter_level(log::LevelFilter::Info)
         .format_timestamp(None)
         .init();
+
+    let _args = Args::parse();
 
     info!("Starting Rock LSP server ...");
 
@@ -72,10 +79,16 @@ fn main() -> Result<()> {
         }
     };
 
-    main_loop(connection, initialization_params)?;
+    match main_loop(connection, initialization_params) {
+        Ok(_) => {}
+        Err(err) => {
+            notify(format!("{:?}", err));
+        }
+    };
 
     io_threads.join()?;
     info!("Shutting down Rock LSP server");
+    notify("Shutting down Rock LSP server");
 
     Ok(())
 }
@@ -183,7 +196,13 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
 
                     // info!("**** URI: {:?}\n\n{}\n\n******", uri, contents);
 
-                    reload_sources_on_change(&connection, &uri, contents, &mut rock_context, &mut sources)?;
+                    reload_sources_on_change(
+                        &connection,
+                        &uri,
+                        contents,
+                        &mut rock_context,
+                        &mut sources,
+                    )?;
                 }
 
                 _ => {
@@ -444,8 +463,10 @@ fn compile_and_send_diagnostics(
     context: &mut CompilerContext,
     sources: &SourceFiles,
 ) -> Result<Vec<Message>> {
-    let compile_result =
-        std::panic::catch_unwind(AssertUnwindSafe(|| context.compile_sources(sources)));
+    let compile_result = std::panic::catch_unwind(AssertUnwindSafe(|| {
+        let _ = std::mem::replace(context, CompilerContext::new());
+        context.compile_sources(sources)
+    }));
 
     let mut diagnostics_by_file = HashMap::<ustr::Ustr, Vec<Diagnostic>>::new();
     for file in sources.iter() {
@@ -611,50 +632,6 @@ fn send_response<T: serde::Serialize>(
     Ok(())
 }
 
-fn print_symbol_table(table: &SymbolTable, sources: &SourceFiles, query_loc: Option<&LineCol>) {
-    let mut report = Report::build(ariadne::ReportKind::Advice, "gud.rock", 0);
-
-    let file = &sources.files[0];
-
-    let mut seen_syms = HashSet::new();
-
-    if let Some(query_loc) = query_loc {
-        let span = Span {
-            file: query_loc.file,
-            line_range: (query_loc.line, query_loc.line + 1),
-            col_range: (query_loc.col, query_loc.col + 1),
-            offset_range: (query_loc.offset, query_loc.offset + 1),
-        };
-
-        report.add_label(span.to_label(file.path(), ">>> Query location <<<".to_string()));
-    }
-
-    for (sym_id, sym) in table.symbols.iter() {
-        seen_syms.insert(sym_id.to_u32());
-
-        report.add_label(sym.span.to_label(
-            file.path(),
-            format!("symbol[#{}]: '{}'", sym_id.to_u32(), sym.ident_text),
-        ));
-    }
-
-    for (ref_id, sym_ref) in table.symbol_refs.iter() {
-        if seen_syms.contains(&ref_id.to_u32()) {
-            continue;
-        }
-
-        report.add_label(sym_ref.span.to_label(
-            file.path(),
-            format!("ref[#{}] -> #{}", ref_id.to_u32(), sym_ref.symbol.to_u32()),
-        ));
-    }
-
-    report
-        .finish()
-        .eprint((file.path().to_string(), Source::from(file.contents())))
-        .unwrap();
-}
-
 // print_symbol_table(
 //     &context
 //         .compiled_module
@@ -665,3 +642,10 @@ fn print_symbol_table(table: &SymbolTable, sources: &SourceFiles, query_loc: Opt
 //     sources,
 //     None,
 // );
+
+fn notify(msg: impl AsRef<str>) {
+    notify_rust::Notification::new()
+        .summary(&format!("[rock-lsp]: {}", msg.as_ref()))
+        .show()
+        .unwrap();
+}

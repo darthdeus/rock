@@ -181,7 +181,7 @@ fn start_server(socket_path: &str) -> Result<()> {
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                handle_stream(stream)?;
+                handle_stream(stream).unwrap();
             }
             Err(e) => {
                 eprintln!("Connection failed: {}", e);

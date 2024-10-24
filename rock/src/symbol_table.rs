@@ -1,8 +1,10 @@
+use std::collections::HashSet;
 use std::collections::{hash_map::Entry, HashMap};
 use std::fmt::Write;
 
 // use log::info;
 
+use crate::source_code::SourceFiles;
 use crate::{
     ast,
     source_code::{LineCol, Span},
@@ -1358,4 +1360,51 @@ impl Default for ScopeBuilder {
     fn default() -> Self {
         Self::new()
     }
+}
+
+pub fn print_symbol_table(table: &SymbolTable, sources: &SourceFiles, query_loc: Option<&LineCol>) {
+    let mut report = ariadne::Report::build(ariadne::ReportKind::Advice, "gud.rock", 0);
+
+    let file = &sources.files[0];
+
+    let mut seen_syms = HashSet::new();
+
+    if let Some(query_loc) = query_loc {
+        let span = Span {
+            file: query_loc.file,
+            line_range: (query_loc.line, query_loc.line + 1),
+            col_range: (query_loc.col, query_loc.col + 1),
+            offset_range: (query_loc.offset, query_loc.offset + 1),
+        };
+
+        report.add_label(span.to_label(file.path(), ">>> Query location <<<".to_string()));
+    }
+
+    for (sym_id, sym) in table.symbols.iter() {
+        seen_syms.insert(sym_id.to_u32());
+
+        report.add_label(sym.span.to_label(
+            file.path(),
+            format!("symbol[#{}]: '{}'", sym_id.to_u32(), sym.ident_text),
+        ));
+    }
+
+    for (ref_id, sym_ref) in table.symbol_refs.iter() {
+        if seen_syms.contains(&ref_id.to_u32()) {
+            continue;
+        }
+
+        report.add_label(sym_ref.span.to_label(
+            file.path(),
+            format!("ref[#{}] -> #{}", ref_id.to_u32(), sym_ref.symbol.to_u32()),
+        ));
+    }
+
+    report
+        .finish()
+        .eprint((
+            file.path().to_string(),
+            ariadne::Source::from(file.contents()),
+        ))
+        .unwrap();
 }
