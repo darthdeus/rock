@@ -42,7 +42,7 @@ impl CompilerContext {
         self.compiled_module.as_ref()
     }
 
-    pub fn compile_sources(&mut self, sources: &SourceFiles) -> Result<(), CompilerError> {
+    pub fn compile_sources(&mut self, sources: &SourceFiles) -> Result<(), Vec<CompilerError>> {
         let result = semantic::compile(sources)?;
 
         // for symbol in result.symbol_table.symbols.values() {

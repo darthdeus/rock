@@ -7,7 +7,7 @@ use crate::*;
 #[derive(Default)]
 pub struct FormatStyle {}
 
-pub fn format_file(file: &SourceFile) -> Result<String, CompilerError> {
+pub fn format_file(file: &SourceFile) -> Result<String, Vec<CompilerError>> {
     Ok(format_top_level(parse(file)?))
 }
 

@@ -31,15 +31,18 @@ macro_rules! field_or_bail {
     };
 }
 
-pub fn parse(source: &SourceFile) -> Result<Vec<TopLevel>, CompilerError> {
+pub fn parse(source: &SourceFile) -> Result<Vec<TopLevel>, Vec<CompilerError>> {
     let mut parser = parser::Parser::new();
 
-    let top_level = parser.parse(&Source {
+    let source = Source {
         code: source.contents().to_string(),
         file: Some(source.path().into()),
-    })?;
+    };
 
-    Ok(top_level)
+    match parser.parse(&source) {
+        Ok(res) => Ok(res),
+        Err(e) => Err(vec![e]),
+    }
 }
 
 pub struct Source {

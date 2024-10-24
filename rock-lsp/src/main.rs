@@ -1,17 +1,22 @@
-use std::{collections::HashSet, str::FromStr};
+use std::{
+    collections::{HashMap, HashSet},
+    panic::AssertUnwindSafe,
+    str::FromStr,
+};
 
 use anyhow::Result;
 use ariadne::{Report, Source};
 use log::{debug, error, info};
-use lsp_server::{Connection, ExtractError, Message, Notification, Request, RequestId, Response};
+use lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response};
 use lsp_types::{
+    notification::Notification,
     request::{Completion, GotoDefinition, GotoTypeDefinitionParams, HoverRequest},
     CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionOptions,
-    CompletionResponse, Documentation, GotoDefinitionResponse, Hover, HoverContents,
-    HoverProviderCapability, InitializeParams, Location, MarkupContent, MarkupKind, OneOf,
-    SaveOptions, ServerCapabilities, TextDocumentPositionParams, TextDocumentSyncCapability,
-    TextDocumentSyncKind, TextDocumentSyncOptions, TextDocumentSyncSaveOptions, Uri,
-    WorkDoneProgressOptions,
+    CompletionResponse, Diagnostic, DiagnosticSeverity, Documentation, GotoDefinitionResponse,
+    Hover, HoverContents, HoverProviderCapability, InitializeParams, Location, MarkupContent,
+    MarkupKind, OneOf, Position, Range, SaveOptions, ServerCapabilities,
+    TextDocumentPositionParams, TextDocumentSyncCapability, TextDocumentSyncKind,
+    TextDocumentSyncOptions, TextDocumentSyncSaveOptions, Uri, WorkDoneProgressOptions,
 };
 
 use rock::*;
@@ -337,7 +342,8 @@ fn do_completion(
                 detail: Some("item-detail: Very good information about the rock".to_string()),
                 // TODO: once we have markup, use that instead.
                 documentation: Some(Documentation::String(
-                    "item-doc: DETAILED DOCUMENTATION OF ROCKS\n\nRocks are made of rock.".to_string(),
+                    "item-doc: DETAILED DOCUMENTATION OF ROCKS\n\nRocks are made of rock."
+                        .to_string(),
                 )),
                 deprecated: Some(false),
                 preselect: Some(true),
@@ -378,7 +384,7 @@ fn span_to_location(span: &Span) -> Location {
     }
 }
 
-fn notification_uri(not: &Notification) -> Result<Uri> {
+fn notification_uri(not: &lsp_server::Notification) -> Result<Uri> {
     not.params
         .as_object()
         .and_then(|o| o.get("textDocument"))
@@ -401,23 +407,11 @@ fn reload_sources_on_notification(
     context: &mut CompilerContext,
     sources: &mut SourceFiles,
 ) -> Result<()> {
-    let file_path = uri.path().as_str();
-    sources.add_or_update_file(SourceFile::from_path(file_path)?);
+    let saved_file_path = uri.path().as_str();
 
-    context
-        .compile_sources(sources)
-        .map_err(|e| anyhow::anyhow!("{:?}", e))?;
+    sources.add_or_update_file(SourceFile::from_path(saved_file_path)?);
 
-    // print_symbol_table(
-    //     &context
-    //         .compiled_module
-    //         .as_ref()
-    //         .unwrap()
-    //         .semantic
-    //         .symbol_table,
-    //     sources,
-    //     None,
-    // );
+    compile_and_send_diagnostics(saved_file_path, context, sources)?;
 
     Ok(())
 }
@@ -428,16 +422,145 @@ fn reload_sources_on_change(
     context: &mut CompilerContext,
     sources: &mut SourceFiles,
 ) -> Result<()> {
+    let saved_file_path = uri.path().as_str();
+
     sources.add_or_update_file(SourceFile::from_path_and_contents(
-        uri.path().as_str(),
+        saved_file_path,
         contents,
     )?);
 
-    context
-        .compile_sources(sources)
-        .map_err(|e| anyhow::anyhow!("{:?}", e))?;
+    compile_and_send_diagnostics(saved_file_path, context, sources)?;
 
     Ok(())
+}
+
+fn compile_and_send_diagnostics(
+    saved_file_path: &str,
+    context: &mut CompilerContext,
+    sources: &SourceFiles,
+) -> Result<Vec<Message>> {
+    let compile_result =
+        std::panic::catch_unwind(AssertUnwindSafe(|| context.compile_sources(sources)));
+
+    let mut diagnostics_by_file = HashMap::<ustr::Ustr, Vec<Diagnostic>>::new();
+    for file in sources.iter() {
+        diagnostics_by_file.insert(file.path().into(), vec![]);
+    }
+
+    match compile_result {
+        Ok(Ok(_)) => (),
+
+        // Compiler normal errors
+        Ok(Err(errors)) => {
+            for error in errors {
+                let range = if let Some(label) = error.labels.first() {
+                    Range {
+                        start: Position {
+                            line: label.span.start().line as u32,
+                            character: label.span.start().col.saturating_sub(1) as u32,
+                        },
+                        end: Position {
+                            line: label.span.end().line as u32,
+                            character: label.span.end().col.saturating_sub(1) as u32,
+                        },
+                    }
+                } else {
+                    Range {
+                        start: Position {
+                            line: error.location.line as u32,
+                            character: error.location.col.saturating_sub(1) as u32,
+                        },
+                        end: Position {
+                            line: error.location.line as u32,
+                            character: error.location.col as u32,
+                        },
+                    }
+                };
+
+                let mut message = error.message.clone();
+                for label in &error.labels {
+                    message.push_str(&format!("\n\n{}: {}", label.span.file, label.message));
+                }
+                if let Some(note) = error.note {
+                    message.push_str(&format!("\n\n{}", note.message));
+                }
+
+                diagnostics_by_file
+                    .entry(error.location.file)
+                    .and_modify(|diagnostics| {
+                        diagnostics.push(Diagnostic {
+                            range,
+                            severity: Some(DiagnosticSeverity::ERROR),
+                            code: None,
+                            code_description: None,
+                            source: Some("RockCompiler".to_string()),
+                            message,
+                            related_information: None,
+                            tags: None,
+                            data: None,
+                        })
+                    });
+            }
+        }
+
+        // Compiler panic
+        Err(err) => {
+            let message = if let Some(msg) = err.downcast_ref::<&str>() {
+                msg.to_string()
+            } else if let Some(msg) = err.downcast_ref::<String>() {
+                msg.clone()
+            } else {
+                format!("{:?}", err)
+            };
+
+            diagnostics_by_file
+                .entry(saved_file_path.into())
+                .and_modify(|diagnostics| {
+                    diagnostics.push(Diagnostic {
+                        range: Range {
+                            start: Position {
+                                line: 0,
+                                character: 0,
+                            },
+                            end: Position {
+                                line: 0,
+                                character: 0,
+                            },
+                        },
+                        severity: Some(DiagnosticSeverity::ERROR),
+                        code: None,
+                        code_description: None,
+                        source: Some("RebelCompiler".to_string()),
+                        message: format!("Compiler panic: {}", message),
+                        related_information: None,
+                        tags: None,
+                        data: None,
+                    })
+                });
+        }
+    }
+
+    let mut messages = vec![];
+    for (path, diagnostics) in diagnostics_by_file {
+        let notification = lsp_types::notification::PublishDiagnostics::METHOD;
+
+        // The compiler sometimes generates files that we don't want to show
+        // diagnostics for. In those cases the file gets this non-path name.
+        if path == "<autogenerated>" {
+            continue;
+        }
+        let params = lsp_types::PublishDiagnosticsParams {
+            uri: Uri::from_str(&format!("file://{}", path.as_str())).unwrap(),
+            version: None,
+            diagnostics,
+        };
+
+        messages.push(Message::Notification(lsp_server::Notification {
+            method: notification.to_string(),
+            params: serde_json::to_value(params).unwrap(),
+        }));
+    }
+    Ok(messages)
 }
 
 fn send_response<T: serde::Serialize>(
@@ -518,3 +641,14 @@ fn print_symbol_table(table: &SymbolTable, sources: &SourceFiles, query_loc: Opt
         .eprint((file.path().to_string(), Source::from(file.contents())))
         .unwrap();
 }
+
+// print_symbol_table(
+//     &context
+//         .compiled_module
+//         .as_ref()
+//         .unwrap()
+//         .semantic
+//         .symbol_table,
+//     sources,
+//     None,
+// );
