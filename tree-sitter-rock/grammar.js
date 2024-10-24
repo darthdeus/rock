@@ -204,11 +204,7 @@ module.exports = grammar({
       ),
 
     typed_param: ($) =>
-      seq(
-        field("ident", $.identifier),
-        ":",
-        field("type_expr", $._type_expr),
-      ),
+      seq(field("ident", $.identifier), ":", field("type_expr", $._type_expr)),
     untyped_param: ($) => $.identifier,
 
     statement: ($) =>
@@ -383,10 +379,17 @@ module.exports = grammar({
       seq(
         "let",
         field("ident", $.identifier),
-        field("type", optional(seq(":", $._type_expr))),
+        optional($.type_annotation),
         "=",
         field("expr", $.expression),
       ),
+
+    type_annotation: ($) => seq(":", field("type",$._type_expr)),
+
+        // field(
+        //   "type_annotation",
+        //   optional(seq(":", field("type", $._type_expr))),
+        // ),
 
     assignment: ($) => seq($.expression, "=", $.expression),
 

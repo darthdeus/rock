@@ -168,7 +168,7 @@ pub fn parse_statement(
                 text: ident_node.text(source)?.into(),
             };
 
-            let ty_expr = if let Some(node) = node.child_by_field_name("type") {
+            let ty_expr = if let Some(node) = node.child_by_field_name("type_annotation") {
                 // let type_expr_node = node
                 //     .child_by_field_name("type")
                 //     .ok_or_else(|| anyhow!("No type on let"))?;
@@ -521,7 +521,6 @@ pub fn parse_expression(
 }
 
 #[test]
-#[ignore] // TODO
 fn parse_ident_test() {
     let source = Source {
         code: "let x: num = 1;".to_string(),
@@ -562,6 +561,13 @@ fn parse_simple_function() {
             match &f.args[0] {
                 FunctionParam::Typed(ident, _) => {
                     assert_eq!(ident.text, "x");
+                }
+                _ => panic!("unexpected function param kind"),
+            }
+
+            match &f.args[1] {
+                FunctionParam::Untyped(ident) => {
+                    assert_eq!(ident.text, "y");
                 }
                 _ => panic!("unexpected function param kind"),
             }
