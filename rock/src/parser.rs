@@ -31,15 +31,13 @@ macro_rules! field_or_bail {
     };
 }
 
-pub fn parse(source: &SourceFile) -> Result<Vec<TopLevel>, Vec<CompilerError>> {
-    let mut parser = parser::Parser::new();
-
+pub fn parse_file(source: &SourceFile) -> Result<Vec<TopLevel>, Vec<CompilerError>> {
     let source = Source {
         code: source.contents().to_string(),
         file: Some(source.path().into()),
     };
 
-    match parser.parse(&source) {
+    match parse_source(&source) {
         Ok(res) => Ok(res),
         Err(e) => Err(vec![e]),
     }
@@ -50,71 +48,62 @@ pub struct Source {
     pub file: Option<ustr::Ustr>,
 }
 
-pub struct Parser {}
-
-impl Parser {
-    pub fn new() -> Self {
-        Self {}
-    }
-
-    pub fn parse(&mut self, source: &Source) -> Result<Vec<TopLevel>, CompilerError> {
-        let mut parser = tree_sitter::Parser::new();
-        parser
-            .set_language(&tree_sitter_rock::LANGUAGE.into())
-            .map_err(|e| {
-                CompilerError::new(
-                    LineCol::unknown(),
-                    format!(
-                        "Error setting treesitter parser language: '{}'.
+pub fn tree_sitter_parse(source: &Source) -> Result<tree_sitter::Tree, CompilerError> {
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_rock::LANGUAGE.into())
+        .map_err(|e| {
+            CompilerError::new(
+                LineCol::unknown(),
+                format!(
+                    "Error setting treesitter parser language: '{}'.
                         This is a bug in the tree-sitter-rock parser, or treesitter itself.",
-                        e
-                    ),
-                )
-            })?;
+                    e
+                ),
+            )
+        })?;
 
-        let tree = parser.parse(&source.code, None).unwrap();
+    let tree = parser.parse(&source.code, None).unwrap();
 
-        let root = tree.root_node();
-        let mut cursor = root.walk();
-
-        let mut top_level = Vec::<TopLevel>::new();
-
-        let mut builder = AstBuilder::new();
-
-        for child in root.children(&mut cursor) {
-            match child.kind() {
-                "statement" => {
-                    let statement = parse_statement(child, source, &mut builder)?;
-
-                    if let StatementKind::Nothing = statement.kind {
-                        continue;
-                    }
-
-                    top_level.push(TopLevel::Statement(statement));
-                }
-
-                "function_def" => {
-                    top_level.push(TopLevel::Function(parse_function_def(
-                        child,
-                        source,
-                        &mut builder,
-                    )?));
-                }
-
-                _ => {
-                    bail_unexpected!(child, source, "top_level");
-                }
-            }
-        }
-
-        Ok(top_level)
-    }
+    Ok(tree)
 }
 
-impl Default for Parser {
-    fn default() -> Self {
-        Self::new()
+pub fn parse_source(source: &Source) -> Result<Vec<TopLevel>, CompilerError> {
+    let tree = tree_sitter_parse(source)?;
+    let root = tree.root_node();
+    let mut cursor = root.walk();
+
+    let mut top_level = Vec::<TopLevel>::new();
+
+    let mut builder = AstBuilder::new();
+
+    for child in root.children(&mut cursor) {
+        match child.kind() {
+            "statement" => {
+                let statement = parse_statement(child, source, &mut builder)?;
+
+                if let StatementKind::Nothing = statement.kind {
+                    continue;
+                }
+
+                top_level.push(TopLevel::Statement(statement));
+            }
+
+            "function_def" => {
+                top_level.push(TopLevel::Function(parse_function_def(
+                    child,
+                    source,
+                    &mut builder,
+                )?));
+            }
+
+            _ => {
+                bail_unexpected!(child, source, "top_level");
+            }
+        }
     }
+
+    Ok(top_level)
 }
 
 pub fn parse_statement(
@@ -252,18 +241,20 @@ pub fn parse_function_def(
         if let Some(node) = params_node.named_child(i) {
             let param_text = node.text(source)?;
 
-            let ident = Ident {
-                id: builder.id_gen(),
-                span: node.to_source_span(source),
-                text: param_text.into(),
-            };
-
             match node.kind() {
                 "typed_param" => {
                     let type_expr_node = field_or_bail!(node, "type_expr", source);
                     // let type_expr_node = node
                     //     .child_by_field_name("type_expr")
                     //     .ok_or_else(|| anyhow!("No type on typed_param"))?;
+
+                    let ident_node = field_or_bail!(node, "ident", source);
+
+                    let ident = Ident {
+                        id: builder.id_gen(),
+                        span: node.to_source_span(source),
+                        text: ident_node.text(source)?.into(),
+                    };
 
                     let type_expr = TypeExpr {
                         id: builder.id_gen(),
@@ -279,6 +270,12 @@ pub fn parse_function_def(
                 }
 
                 "untyped_param" => {
+                    let ident = Ident {
+                        id: builder.id_gen(),
+                        span: node.to_source_span(source),
+                        text: param_text.into(),
+                    };
+
                     params.push(FunctionParam::Untyped(ident));
                 }
 
@@ -521,4 +518,54 @@ pub fn parse_expression(
         span: node.to_source_span(source),
         kind,
     })
+}
+
+#[test]
+#[ignore] // TODO
+fn parse_ident_test() {
+    let source = Source {
+        code: "let x: num = 1;".to_string(),
+        file: None,
+    };
+    let res = parse_source(&source);
+
+    let res = res.unwrap();
+
+    assert_eq!(res.len(), 1);
+    match &res[0] {
+        TopLevel::Statement(stmt) => match &stmt.kind {
+            StatementKind::Let { ident, .. } => {
+                assert_eq!(ident.text, "x");
+            }
+            _ => panic!("unexpected statement kind"),
+        },
+        _ => panic!("unexpected toplevel kind"),
+    }
+}
+
+#[test]
+fn parse_simple_function() {
+    let source = Source {
+        code: "fn foo(x: num, y) { }".to_string(),
+        file: None,
+    };
+
+    let res = parse_source(&source).unwrap();
+
+    assert_eq!(res.len(), 1);
+
+    match &res[0] {
+        TopLevel::Function(f) => {
+            assert_eq!(f.name.text, "foo");
+            assert_eq!(f.args.len(), 2);
+
+            match &f.args[0] {
+                FunctionParam::Typed(ident, _) => {
+                    assert_eq!(ident.text, "x");
+                }
+                _ => panic!("unexpected function param kind"),
+            }
+        }
+        _ => panic!("unexpected toplevel kind"),
+    }
 }

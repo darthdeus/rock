@@ -18,7 +18,7 @@ pub fn compile(source_files: &SourceFiles) -> Result<SemanticResult, Vec<Compile
     let mut top_level = vec![];
 
     for file in source_files.iter() {
-        let ast = parser::parse(file)?;
+        let ast = parser::parse_file(file)?;
         top_level.extend(ast);
     }
 

@@ -15,7 +15,7 @@ fn main() -> Result<()> {
     println!("==== INPUT ====\n{}", input_file.contents());
 
     // TODO: error handling lul
-    let top_level = rock::parser::parse(&input_file).unwrap();
+    let top_level = rock::parser::parse_file(&input_file).unwrap();
 
     println!("==== Formatted ====\n{}", format_top_level(top_level));
 

@@ -1024,7 +1024,7 @@
     "type": "typed_param",
     "named": true,
     "fields": {
-      "identifier": {
+      "ident": {
         "multiple": false,
         "required": true,
         "types": [

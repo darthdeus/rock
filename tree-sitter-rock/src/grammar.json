@@ -628,7 +628,7 @@
       "members": [
         {
           "type": "FIELD",
-          "name": "identifier",
+          "name": "ident",
           "content": {
             "type": "SYMBOL",
             "name": "identifier"

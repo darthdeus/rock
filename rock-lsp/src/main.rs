@@ -1,11 +1,6 @@
-use std::{
-    collections::{HashMap, HashSet},
-    panic::AssertUnwindSafe,
-    str::FromStr,
-};
+use std::{collections::HashMap, panic::AssertUnwindSafe, str::FromStr};
 
 use anyhow::Result;
-use ariadne::{Report, Source};
 use clap::{command, Parser};
 use log::{debug, error, info};
 use lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response};
@@ -22,7 +17,7 @@ use lsp_types::{
 
 use rock::*;
 use source_code::{LineCol, SourceFile, SourceFiles, Span};
-use symbol_table::{print_symbol_table, SymbolTable};
+use symbol_table::print_symbol_table;
 
 #[derive(clap::Parser)]
 #[command(version = env!("CARGO_PKG_VERSION"), about = "Rock LSP server")]

@@ -205,7 +205,7 @@ module.exports = grammar({
 
     typed_param: ($) =>
       seq(
-        field("identifier", $.identifier),
+        field("ident", $.identifier),
         ":",
         field("type_expr", $._type_expr),
       ),

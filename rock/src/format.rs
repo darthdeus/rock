@@ -1,5 +1,5 @@
 use compiler_error::CompilerError;
-use parser::parse;
+use parser::parse_file;
 use source_code::SourceFile;
 
 use crate::*;
@@ -8,7 +8,7 @@ use crate::*;
 pub struct FormatStyle {}
 
 pub fn format_file(file: &SourceFile) -> Result<String, Vec<CompilerError>> {
-    Ok(format_top_level(parse(file)?))
+    Ok(format_top_level(parse_file(file)?))
 }
 
 pub fn format_top_level(top_level: Vec<TopLevel>) -> String {
