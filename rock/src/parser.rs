@@ -119,6 +119,8 @@ pub fn parse_statement(
     //     });
     // }
 
+    println!("PARSING STATEMENT");
+
     let node = node.child(0).ok_or_else(|| {
         let msg = format!(
             "Statement must have a child, got '{}'",

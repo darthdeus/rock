@@ -31,6 +31,12 @@ fn main() -> Result<()> {
 
     let _args = Args::parse();
 
+    // Check if help or version is shown and terminate early
+    if std::env::args()
+        .any(|arg| arg == "--help" || arg == "--version" || arg == "-v" || arg == "-h")
+    {
+        std::process::exit(0);
+    }
     info!("Starting Rock LSP server ...");
 
     let (connection, io_threads) = Connection::stdio();
@@ -458,10 +464,12 @@ fn compile_and_send_diagnostics(
     context: &mut CompilerContext,
     sources: &SourceFiles,
 ) -> Result<Vec<Message>> {
-    let compile_result = std::panic::catch_unwind(AssertUnwindSafe(|| {
-        let _ = std::mem::replace(context, CompilerContext::new());
-        context.compile_sources(sources)
-    }));
+    // let compile_result = std::panic::catch_unwind(AssertUnwindSafe(|| {
+    //     let _ = std::mem::replace(context, CompilerContext::new());
+    //     context.compile_sources(sources)
+    // }));
+    //
+    let compile_result: Result<Result<_, _>> = Ok(context.compile_sources(sources));
 
     let mut diagnostics_by_file = HashMap::<ustr::Ustr, Vec<Diagnostic>>::new();
     for file in sources.iter() {
@@ -582,7 +590,7 @@ fn compile_and_send_diagnostics(
         }));
     }
 
-    info!("GOT {} MESSAGES", messages.len());
+    // info!("GOT {} MESSAGES", messages.len());
 
     for message in &messages {
         info!("{:#?}", message);
