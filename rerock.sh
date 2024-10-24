@@ -34,6 +34,6 @@ fi
 # $STDBUF -o0 tee -a /tmp/rock-lsp-stdin.log | $STDBUF -o0 ./target/debug/rock-lsp $@
 # ./target/debug/rock-lsp
 
-tee -a /tmp/rock-lsp-stdin.log | ./target/debug/stick client ./target/debug/rock-lsp
-# ./target/debug/stick client ./target/debug/rock-lsp
+# tee -a /tmp/rock-lsp-stdin.log | ./target/debug/stick client ./target/debug/rock-lsp
+./target/debug/stick client ./target/debug/rock-lsp
 

@@ -119,8 +119,6 @@ pub fn parse_statement(
     //     });
     // }
 
-    println!("PARSING STATEMENT");
-
     let node = node.child(0).ok_or_else(|| {
         let msg = format!(
             "Statement must have a child, got '{}'",
@@ -311,7 +309,6 @@ pub fn parse_function_def(
     //     .ok_or_else(|| anyhow!("No body on function_def"))?;
 
     let body_node = field_or_bail!(child, "body", source);
-
     let body = parse_block(body_node, source, builder)?;
 
     Ok(FunctionDeclaration {

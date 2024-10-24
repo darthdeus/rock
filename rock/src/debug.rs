@@ -25,7 +25,7 @@ impl<'a> NodeExt for Node<'a> {
                 Label::new((fname, self.start_byte()..self.end_byte())).with_message(message),
             )
             .finish()
-            .print((fname, ariadne::Source::from(&source.code)))
+            .eprint((fname, ariadne::Source::from(&source.code)))
             .unwrap();
     }
 
